@@ -1,0 +1,12 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "server",
+  "dolt_server_host": "127.0.0.1",
+  "dolt_server_port": 3308,
+  "dolt_server_user": "root",
+  "dolt_database": "mitre_saf_skills",
+  "project_id": "94821b52-c651-4a8b-a097-96b81502a9a9",
+  "global_dolt_database": "beads_global",
+  "global_project_id": "00000000-0000-0000-0000-000000000000"
+}
