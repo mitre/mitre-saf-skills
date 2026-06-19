@@ -94,10 +94,29 @@ Before writing anything, gather context from the user. Present these as structur
 **Question 2: What should the skill do?**
 Ask for one sentence. If they already said it, confirm: "So the skill should [X] — correct?"
 
+**Before Question 3 — Check if this already exists.**
+
+Immediately after the user describes what the skill should do, search everywhere:
+
+1. **Marketplace:** `npx skills find "<keywords from the user's description>"`
+2. **Already installed:** Check `~/.claude/skills/`, `.claude/skills/`, and installed plugins for skills with similar names or descriptions
+3. **Leaderboard:** Check the [skills.sh leaderboard](https://skills.sh) for popular skills in the domain
+4. **Anthropic's repo:** Check [anthropics/skills](https://github.com/anthropics/skills) for official implementations
+
+Present findings to the user:
+
+- **Exact match found** → "There's already a skill that does this: [name] ([install count] installs). Want to install it, or do you need something different?"
+- **Close match (80-90%)** → "There's a skill that does most of this: [name]. Want to adopt it and adapt the missing 10-20%, or build from scratch?"
+- **Partial match** → "These skills cover part of what you need: [list]. Want to compose them, use one as a starting point, or build fresh?"
+- **Nothing found** → "No existing skills match. Building from scratch."
+
+**The default should be adopt-and-adapt, not build-from-scratch.** Building a new skill when a 90% solution exists is waste. The user can always choose to build fresh, but they should see what exists first.
+
 **Question 3: Do you have a starting point?**
-- "Yes, I have a draft SKILL.md" → ask for the path, read it, skip to Phase 2
+- "Yes, I found an existing skill to adapt" → install it, read its SKILL.md, proceed to Phase 2 with it as the base
+- "Yes, I have my own draft SKILL.md" → ask for the path, read it, skip to Phase 2
 - "Yes, notes or a checklist" → ask for the path or paste, extract the structure
-- "No, starting from scratch"
+- "No, starting from scratch" → proceed to Phase 1
 
 **Question 4: What's the target domain?**
 - Language/framework (Ruby/Rails, Python/Django, TypeScript/Node, Go, etc.)
@@ -278,6 +297,18 @@ Fix any FAIL before proceeding. Show what failed and the fix applied.
 4. Test with 2-3 prompts that SHOULD trigger it
 5. Test with 1-2 near-miss prompts that should NOT trigger it
 6. If the skill has a Q&A phase, verify the questions appear and answers flow correctly
+
+### Regression testing (when improving or rewriting an existing skill)
+
+If you rewrote or generalized a skill, verify the new version is at least as good as the old:
+
+1. **Keep both versions available** — the original (e.g., in `~/.claude/skills/`) and the rewritten copy (e.g., in the repo's `skills/`)
+2. **Pick 3-5 real tasks** the old skill was used on — actual card descriptions, real prompts from past work
+3. **Walk each task through the new version** — does every gate/step/check still fire on the right triggers?
+4. **Check for lost specificity** — did generalizing a gate weaken it? "Use project design tokens" should still lead the agent to `--vulcan-*` on a Vulcan project because the agent reads the project's design system docs.
+5. **The key question:** For each gate/rule, would the new version catch the same failure the old version was created to prevent?
+
+If a gate doesn't fire where it should, the generalization went too far — add specificity back without reverting to hardcoded project references.
 
 ### Eval loop (for important skills)
 

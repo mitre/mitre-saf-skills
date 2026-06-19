@@ -9,6 +9,7 @@ description: >-
   beads", "create a board", "init beads", "connect to the beads server",
   "new beads board", or "set up issue tracking".
 compatibility: Requires beads CLI (bd). Shared/remote modes require a running dolt sql-server.
+license: Apache-2.0
 metadata:
   author: mitre-saf
 ---
@@ -27,7 +28,14 @@ Determine the mode from the user's request. First match wins:
 | "remote", "dolthub", "sync across machines", "push/pull" | **shared-remote** — read [references/shared-remote.md](references/shared-remote.md) |
 | Nothing specific, "local", "just set up beads", "init" | **local** (default) |
 
-If unclear, default to **local** — it works without any server and can be upgraded later.
+If unclear, ask the user:
+
+**Which setup do you need?**
+- "Local (just me)" — embedded Dolt, no server needed, good for getting started
+- "Shared (team server)" — connect to a team Dolt SQL server for shared issue tracking
+- "Shared + remote sync" — shared server with DoltHub/GitHub sync across machines
+
+Default to **local** if the user doesn't have a preference — it works without any server and can be upgraded later.
 
 ## Prerequisites
 

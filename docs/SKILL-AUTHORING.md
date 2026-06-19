@@ -150,6 +150,35 @@ description: >-
   onboarding to an unfamiliar codebase, or when asked to assess code quality.
 ```
 
+## Adopt and Adapt Before Building
+
+Before creating any skill, search for existing ones that solve the same problem:
+
+```bash
+npx skills find "<domain keywords>"
+```
+
+Also check the [skills.sh leaderboard](https://skills.sh) and [Anthropic's skills repo](https://github.com/anthropics/skills).
+
+If an 80-90% solution exists, adapt it rather than building from scratch. Fork it, add what's missing, remove what doesn't fit. Building a new skill when a near-match exists wastes effort and fragments the ecosystem.
+
+The decision framework:
+- **Exact match** → install and use it
+- **80-90% match** → fork, adapt the gap, contribute improvements upstream if applicable
+- **Partial match** → use as a starting point or compose with other skills
+- **No match** → build from scratch
+
+## Regression Testing (when rewriting skills)
+
+When generalizing or rewriting a skill, verify the new version catches the same failures the old version was built to prevent:
+
+1. Keep both versions available (original in `~/.claude/skills/`, rewrite in repo)
+2. Walk 3-5 real past tasks through the new version
+3. For each gate/rule, ask: "Would this still catch the failure that created this gate?"
+4. Check that generalization didn't lose specificity — "use project design tokens" should still lead the agent to find `--project-primary` in the project's stylesheet
+
+If a gate doesn't fire where it should, the generalization went too far.
+
 ## Principle-First Writing (for universal skills)
 
 Skills encode universal engineering principles, not project-specific recipes. When a skill was learned from a specific incident, write it as:
