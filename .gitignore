@@ -1,0 +1,50 @@
+
+# Beads / Dolt files (added by bd init)
+.beads/
+.agents/
+.dolt/
+*.db
+.beads-credential-key
+
+# Credentials and secrets
+*credential*
+*.key
+*.pem
+.env
+.env.*
+
+# Model weights and training data (too large for skills repo)
+*.safetensors
+*.bin
+*.onnx
+*.pt
+*.pth
+models/
+checkpoints/
+data/cci-vectors*/
+data/cross-encoder-cache/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Editor / OS
+.DS_Store
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Claude Code session files
+CLAUDE.md
+session.md
+recovery-*.md
+
+# Nested git repos (should not be committed)
+skills/**/.git/
+
+# bd init auto-generates these
+AGENTS.md

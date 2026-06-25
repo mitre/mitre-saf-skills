@@ -1,0 +1,43 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "notGrouped": "bottom",
+  "groupings": [
+    {
+      "title": "InSpec & Compliance",
+      "description": "Skills for writing, reviewing, and mapping security controls across STIG, CIS, cloud, and Kubernetes baselines.",
+      "skills": [
+        "profile-development-rubric",
+        "derive-cci-mappings"
+      ]
+    },
+    {
+      "title": "Development Workflow",
+      "description": "Skills for test-driven development, documentation, code quality audits, feature planning, and spec management.",
+      "skills": [
+        "project-docs",
+        "spec-split-review",
+        "package-audit",
+        "create-feature-plan-adr"
+      ]
+    },
+    {
+      "title": "Project Management (beads)",
+      "description": "Skills for teams using beads for issue tracking, TDD gates, card management, session context preservation, and multi-agent orchestration.",
+      "skills": [
+        "create-beads-board",
+        "project-tdd",
+        "project-card",
+        "project-ac-verify",
+        "prepare-compact",
+        "restore-context"
+      ]
+    },
+    {
+      "title": "Skill Authoring",
+      "description": "Skills for creating, auditing, and improving agent skills following the Agent Skills specification.",
+      "skills": [
+        "create-skill"
+      ]
+    }
+  ]
+}
