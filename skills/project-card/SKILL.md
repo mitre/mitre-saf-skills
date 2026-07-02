@@ -204,7 +204,11 @@ In **Anti-patterns**:
 
 ## How to Create Cards
 
-Write the full 12-section template to `/tmp/card-desc.md`, then use `bd create` with proper flags.
+Write the full 12-section template to a file (e.g. `/tmp/card-desc.md`), then feed it to `bd create` with `--body-file` and `--validate`.
+
+- **`--body-file <file>`** (alias `--stdin` reads from `-`) — pass the description via the native flag, NOT a shell `--description="$(cat …)"`. The template is full of backticks, `$refs`, quotes, and `[ ]`; routing it through a shell substitution is a quoting minefield where one stray backtick or `$` silently corrupts the card. `--body-file` reads the file directly and sidesteps all of it.
+- **`--validate`** — mechanically checks the description contains the required sections for the issue type (a backstop for the Hard Gate above; a malformed card fails to create instead of landing broken).
+- **`-f/--file <markdown>`** — create *multiple* issues from one markdown file in a single call; handy for a set of sibling cards.
 
 ### Task/Bug Cards (children of an epic)
 
@@ -215,7 +219,8 @@ CARD
 
 bd create \
   --title="Verb what — context" \
-  --description="$(cat /tmp/card-desc.md)" \
+  --body-file /tmp/card-desc.md \
+  --validate \
   --type=task \
   --priority=1 \
   --parent=<epic-id> \
@@ -226,6 +231,8 @@ rm /tmp/card-desc.md
 ```
 
 Key flags:
+- `--body-file <file>` — read the description from a file (never `--description="$(cat …)"`; alias `--stdin` for `-`)
+- `--validate` — fail the create if the description is missing required sections
 - `--parent=<epic-id>` — links card as child of the epic (REQUIRED for cards in an epic)
 - `--labels sp:N` — story points as a label
 - `--estimate N` — Claude-pace minutes
@@ -237,7 +244,8 @@ Key flags:
 ```bash
 bd create \
   --title="[EPIC] Verb what — context" \
-  --description="$(cat /tmp/card-desc.md)" \
+  --body-file /tmp/card-desc.md \
+  --validate \
   --type=epic \
   --priority=1 \
   --labels sp:8
@@ -282,7 +290,7 @@ cat > /tmp/card-desc.md <<'CARD'
 CARD
 
 bd update <card-id> \
-  --description="$(cat /tmp/card-desc.md)"
+  --body-file /tmp/card-desc.md
 
 rm /tmp/card-desc.md
 ```
