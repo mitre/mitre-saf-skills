@@ -85,7 +85,9 @@ Before writing anything, gather context from the user. Present these as structur
 - "Improve an existing skill" → ask for the skill path, run audit first to identify issues, then proceed to Phase 2 with findings
 - "Review a skill for spec compliance" → same as "Audit"
 
-**If "Audit" or "Review"** — ask for the skill path (or name if installed), read the SKILL.md and all supporting files, then run all 7 audit dimensions from [references/audit-checklist.md](references/audit-checklist.md). Produce the structured findings report. Stop there unless the user asks to fix the findings.
+**If "Audit" or "Review"** — ask for the skill path (or name if installed), then:
+1. **Marketplace re-check** — run `npx skills find "<skill's domain keywords>"` to see if a better or higher-install-count skill now exists for the same purpose. Report findings as informational (WARN, not FAIL).
+2. Read the SKILL.md and all supporting files, then run all audit dimensions from [references/audit-checklist.md](references/audit-checklist.md). Produce the structured findings report. Stop there unless the user asks to fix the findings.
 
 **If "Improve"** — run the audit first, present findings, then ask: "Which findings do you want to fix?" Use the findings to guide Phase 2 edits.
 
@@ -241,7 +243,9 @@ Write the SKILL.md to the target directory. Show the user the draft and ask: "Do
 
 ## Phase 3: Validate Against Spec
 
-Run each check below. For every grep-based check, **classify each hit by context before reporting:**
+**Start with the automated pre-check:** `bash scripts/audit-precheck.sh <skill-directory>` runs all grep-based checks from D1, D4, D5, D6 and produces a structured report. Review hits marked "CLASSIFY BY CONTEXT" manually, then continue with the non-greppable checks below.
+
+For any remaining grep-based checks, **classify each hit by context before reporting:**
 
 1. Run the grep command
 2. For each hit, read the surrounding 3 lines

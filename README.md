@@ -42,7 +42,6 @@ Skills for writing, reviewing, and mapping security controls.
 | Skill | Description |
 |-------|-------------|
 | **[profile-development-rubric](skills/profile-development-rubric/)** | Methodology for writing "done" InSpec controls — the SAF yardstick. Covers the six outcomes, InSpec resource selection, describe block framing, failure messages, input generalization, and compliance metadata (CCI, NIST, CIS). Works across STIG, CIS Benchmark, cloud, and Kubernetes baselines. |
-| **[derive-cci-mappings](skills/derive-cci-mappings/)** | Maps security requirements from any framework (CIS, SCuBA, custom) to DISA CCI codes via NIST SP 800-53 Rev 5. Includes semantic search scripts, bag-of-words fallback, and API lookup. |
 
 ### Development Workflow
 
@@ -53,8 +52,9 @@ Skills for test-driven development, documentation, and code quality.
 | **[project-docs](skills/project-docs/)** | Auto-detects your documentation system (VitePress, MkDocs, Nuxt Content, Docusaurus, Sphinx) and loads the matching style guide. Enforces "read source before writing" discipline. |
 | **[spec-split-review](skills/spec-split-review/)** | Split large RSpec files into domain-focused files with expert review for grouping quality, test gap analysis, and parallel safety. Use when any spec file exceeds 500 lines. |
 | **[package-audit](skills/package-audit/)** | Run a systematic audit of a package's source code across four domains: DRY/maintainability, architecture, test quality, and security. |
+| **[create-feature-plan-adr](skills/create-feature-plan-adr/)** | Drive the design phase before code. Produces an ADR (WHY) and feature plan (HOW) that feed into project-card for epic/card creation. Phase 0 reads the codebase first, Decision Gate routes based on existing work. |
 
-### Project Management (requires [beads](https://github.com/steveyegge/beads))
+### Project Management (requires [beads](https://github.com/gastownhall/beads))
 
 Skills for teams using beads for issue tracking and task management.
 
@@ -64,14 +64,14 @@ Skills for teams using beads for issue tracking and task management.
 | **[project-tdd](skills/project-tdd/)** | TDD with quality gates learned from production audits. 22 gates covering exhaustive branching, type safety, test sufficiency, DRY, error classification, and more. |
 | **[project-card](skills/project-card/)** | Create well-structured beads cards with the mandatory 12-section template. Enforces acceptance criteria, verification commands, and anti-patterns. |
 | **[project-ac-verify](skills/project-ac-verify/)** | Independent agent review of card acceptance criteria before close. Spawns a reviewer that checks each AC against the actual code diff and design doc. |
-| **[project-goal](skills/project-goal/)** | Generate a `/goal` prompt from a beads epic, plan file, or free text. Synthesizes dependency order, skill orchestration, and verification steps. |
-| **[create-beads-orchestration](skills/create-beads-orchestration/)** | Bootstrap multi-agent orchestration with beads task tracking. Sets up orchestrator, supervisor agents, and worktree-per-task isolation. |
+| **[prepare-compact](skills/prepare-compact/)** | Save full session context before context compaction or loss. Archives recovery files, updates beads cards, syncs to remote, and writes strategic recovery context for the next session. |
+| **[restore-context](skills/restore-context/)** | Restore full session context after compaction or time away. Reads recovery files, syncs the board, loads memories, verifies git state, and presents available work. |
 
-### Frontend
+### Skill Authoring
 
 | Skill | Description |
 |-------|-------------|
-| **[dark-mode-verify](skills/dark-mode-verify/)** | Verification protocol for dark mode CSS changes. Enforces browser-based verification, selector validation against live DOM, computed style checks, and light-mode regression testing. |
+| **[create-skill](skills/create-skill/)** | Guided workflow for creating, auditing, or improving agent skills. Searches marketplace before building, runs 7-dimension audits, context-aware false positive classification. |
 
 ## Installation Methods
 
@@ -110,17 +110,17 @@ For Cursor: copy to `.cursor/skills/`. For Codex: copy to `.agents/skills/`.
 | Skill | Claude Code | Cursor | Codex | Copilot | Requires |
 |-------|:-----------:|:------:|:-----:|:-------:|----------|
 | profile-development-rubric | Yes | Yes | Yes | Yes | InSpec |
-| derive-cci-mappings | Yes | Yes | Yes | Yes | Python 3 |
 | project-docs | Yes | Yes | Yes | Yes | — |
 | spec-split-review | Yes | Yes | Yes | Yes | RSpec, Ruby |
 | package-audit | Yes | Yes | Yes | Yes | — |
-| dark-mode-verify | Yes | Yes | Partial | Partial | Playwright MCP |
+| create-feature-plan-adr | Yes | Yes | Yes | Yes | — |
 | create-beads-board | Yes | Yes | Yes | Yes | beads CLI |
-| project-tdd | Yes | Partial | Partial | Partial | beads CLI |
-| project-card | Yes | Partial | Partial | Partial | beads CLI |
-| project-ac-verify | Yes | Partial | Partial | Partial | beads CLI, subagents |
-| project-goal | Yes | Partial | Partial | Partial | beads CLI |
-| create-beads-orchestration | Yes | No | No | No | beads CLI, Claude Code hooks |
+| project-tdd | Yes | Yes | Yes | Yes | beads CLI |
+| project-card | Yes | Yes | Yes | Yes | beads CLI |
+| project-ac-verify | Yes | Yes | Yes | Yes | beads CLI |
+| prepare-compact | Yes | Yes | Yes | Yes | beads CLI |
+| restore-context | Yes | Yes | Yes | Yes | beads CLI |
+| create-skill | Yes | Yes | Yes | Yes | — |
 
 ## Creating Your Own Skills
 

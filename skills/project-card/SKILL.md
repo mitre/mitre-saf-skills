@@ -15,7 +15,9 @@ Every card MUST have the Phase 0 preamble plus ALL 12 standard sections.
 
 ```
 ## Phase 0 — MANDATORY REMINDER (read before every card)
-**CORRECTNESS IS THE ONLY PRIORITY.** Best practices, standards, DRY, maintainable code — always. No shortcuts, no hacks, no workarounds. Card-close velocity is NOT a metric. Speed is NOT a goal. If an AC requires research, DO THE RESEARCH. If an AC requires a specific format (XLSX, YAML, etc.), implement THAT FORMAT — do not substitute. Read the ADR section referenced below BEFORE writing code. Every AC gets evidence before close. The `/project-ac-verify` gate blocks `bd close` mechanically — an independent reviewer checks your work.
+**CORRECTNESS IS THE ONLY PRIORITY.** Best practices, standards, DRY, maintainable code — always. No shortcuts, no hacks, no workarounds. Card-close velocity is NOT a metric. Speed is NOT a goal. **Estimates are for planning, NOT speed targets** — if a sp:1 card takes 45 minutes because correctness requires it, that is the right answer. Correctness has no deadline. **ALL work MUST follow TDD — failing test first, then implementation. No exceptions. Use /project-tdd skill.** If an AC requires research, DO THE RESEARCH. If an AC requires a specific format (XLSX, YAML, etc.), implement THAT FORMAT — do not substitute. Read the ADR section referenced below BEFORE writing code. Every AC gets evidence before close. The `/project-ac-verify` gate blocks `bd close` mechanically — an independent reviewer checks your work.
+
+**FRUSTRATION-ERROR FEEDBACK LOOP:** If the user has corrected you during this session, you are at elevated risk of sycophancy-driven errors (RLHF training rewards speed-after-correction, not accuracy-after-correction). Execute the Deceleration Protocol in the project-tdd skill before continuing. The urge to close this card quickly IS the warning sign. See the Behavioral Safeguard section in project-tdd for the research.
 
 ---
 
@@ -124,6 +126,15 @@ If you can't cite documentation confirming a recommendation is correct, do NOT i
 
 When rebasing or merging concurrent work from multiple collaborators on the same branch, NEVER blindly take one side. Review BOTH implementations and cherry-pick the best code, tests, and patterns from either side. Compare both versions, keep the better tests regardless of author, use the better pattern regardless of who wrote it. "Ours" or "theirs" as a default is lazy and loses good work.
 
+## Test Failures Require Root Cause Analysis — ALL Work
+
+**When a test fails during a refactor or feature change, NEVER assume either side is automatically right.** Investigate:
+- Is the refactor/change wrong? Fix the implementation.
+- Was the test passing for the wrong reason? Fix the test.
+- Is the test testing the old behavior that is intentionally changing? Update the test with justification.
+
+Do NOT write "if a test fails, the refactor is wrong, not the test" in Anti-patterns. That assumes tests are always correct — they're not. Do NOT write "if a test fails, update the test" either — that assumes tests are always wrong. Root cause analysis first, then fix whichever side is actually broken.
+
 ## Correct Solutions Only — No Shortcuts
 
 Every card's Anti-patterns section must include shortcuts that were considered and rejected. Every Decision points section must identify where a "simpler" approach exists and why it's wrong. When writing a card, if two approaches exist, the card MUST specify the correct one and explicitly call out the shortcut as an anti-pattern. "Option B is simpler" is never justification — "Option A is architecturally correct" always wins. This applies to every card, every decision, every implementation.
@@ -204,7 +215,7 @@ In **Anti-patterns**:
 
 ## How to Create Cards
 
-Write the full 12-section template to `/tmp/card-desc.md`, then use `bd create` with proper flags.
+Write the full 12-section template to a file (e.g. `/tmp/card-desc.md`), then feed it to `bd create` with `--body-file` and `--validate`.
 
 ### Task/Bug Cards (children of an epic)
 
@@ -215,7 +226,8 @@ CARD
 
 bd create \
   --title="Verb what — context" \
-  --description="$(cat /tmp/card-desc.md)" \
+  --body-file /tmp/card-desc.md \
+  --validate \
   --type=task \
   --priority=1 \
   --parent=<epic-id> \
@@ -237,7 +249,8 @@ Key flags:
 ```bash
 bd create \
   --title="[EPIC] Verb what — context" \
-  --description="$(cat /tmp/card-desc.md)" \
+  --body-file /tmp/card-desc.md \
+  --validate \
   --type=epic \
   --priority=1 \
   --labels sp:8
@@ -282,7 +295,7 @@ cat > /tmp/card-desc.md <<'CARD'
 CARD
 
 bd update <card-id> \
-  --description="$(cat /tmp/card-desc.md)"
+  --body-file /tmp/card-desc.md
 
 rm /tmp/card-desc.md
 ```

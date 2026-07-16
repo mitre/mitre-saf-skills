@@ -1,20 +1,22 @@
 # Skill Audit Checklist
 
-Systematic review of an existing skill across 7 dimensions. Read the entire SKILL.md and all files in the skill directory before starting. Report each check as PASS, WARN, or FAIL with evidence.
+Systematic review of an existing skill across all dimensions. Read the entire SKILL.md and all files in the skill directory before starting. Report each check as PASS, WARN, or FAIL with evidence.
 
 ## How to Run an Audit
 
-1. **Fetch current standards first** — the spec evolves. Before auditing, fetch:
+1. **Run the automated pre-check** — `bash scripts/audit-precheck.sh <skill-directory>` runs all grep-based checks from D1, D4, D5, D6 and produces a structured report. Hits marked "CLASSIFY BY CONTEXT" need your judgment. This saves ~60% of manual grep work.
+2. **Fetch current standards** — the spec evolves. Before auditing, fetch:
    - [Agent Skills Spec](https://agentskills.io/specification) — current frontmatter schema, naming rules, progressive disclosure
    - [Best Practices](https://agentskills.io/skill-creation/best-practices) — current writing style, calibration guidance
    - Use Context7 MCP (`resolve-library-id` for "agentskills") or web fetch. If neither is available, proceed with the checklist below — it reflects the spec as of the last update, but the live spec is authoritative.
-2. Read the SKILL.md completely
-3. List all files in the skill directory (`references/`, `scripts/`, `assets/`)
-4. Read every supporting file
-5. Run each dimension below, comparing against both the fetched spec AND this checklist
-6. **Classify grep hits by context** — see "Avoiding False Positives" below
-7. Produce a findings report grouped by severity (FAIL → WARN → PASS)
-8. End with a summary: total findings, top 3 fixes, overall publish-readiness
+3. **Marketplace re-check** — run `npx skills find "<skill's domain keywords>"` to check if a better or higher-install-count skill now exists. Report findings in the audit summary as WARN (informational, not blocking).
+4. Read the SKILL.md completely
+5. List all files in the skill directory (`references/`, `scripts/`, `assets/`)
+6. Read every supporting file
+7. Run each dimension below, comparing against both the fetched spec AND this checklist
+8. **Classify grep hits by context** — see "Avoiding False Positives" below
+9. Produce a findings report grouped by severity (FAIL → WARN → PASS)
+10. End with a summary: total findings, top 3 fixes, marketplace status, overall publish-readiness
 
 ## Avoiding False Positives
 
@@ -38,7 +40,7 @@ Before marking a finding as FAIL or WARN, check WHERE the match occurs:
 
 ## Dimension 1: Spec Compliance
 
-Check the skill against the Agent Skills specification requirements.
+Check the skill against the Agent Skills specification requirements. All checks apply to SKILL.md AND all files in `references/`, `scripts/`, and `assets/` — reference files are subject to the same quality bar as SKILL.md.
 
 | Check | How to verify | Severity if failed |
 |-------|---------------|-------------------|
@@ -82,7 +84,7 @@ Is content organized for efficient context usage?
 
 ## Dimension 4: Portability
 
-Will this skill work across Claude Code, Cursor, Codex, Copilot, Windsurf, Gemini, and Cline?
+Will this skill work across Claude Code, Cursor, Codex, Copilot, Windsurf, Gemini, and Cline? All checks apply to SKILL.md AND all files in `references/`, `scripts/`, and `assets/`.
 
 **All grep checks in this dimension require context classification** — apply the "Avoiding False Positives" rules above to every hit before reporting. Install instructions (`ln -sfn ... ~/.claude/skills/`), checklist examples, and "what to grep for" instructions are false positives.
 
@@ -90,16 +92,49 @@ Will this skill work across Claude Code, Cursor, Codex, Copilot, Windsurf, Gemin
 |-------|---------------|-------------------|
 | No absolute paths | `grep -rn '/Users/\|/home/\|~/.claude/\|~/.cursor/\|~/.agents/' .` = 0 | FAIL |
 | No `$SKILL_DIR` or `$SKILLS_HOME` variables | The spec has no such standard — use relative paths | FAIL |
-| No tool-specific features | grep for `TodoWrite`, `TaskCreate`, `AskUserQuestion`, `.claude/hooks/`, `.claude/settings.json`, `.claude/agents/` | WARN |
+| No tool-specific mechanism names | grep for `Agent tool`, `runSubagent`, `TodoWrite`, `TaskCreate`, `AskUserQuestion`, `.claude/hooks/`, `.claude/settings.json`, `.claude/agents/`, `context: fork` — skills describe INTENT, not mechanisms | WARN |
 | No slash command references | grep for `/skill-name` patterns (use plain skill names instead) | WARN |
 | No wikilink references | grep for `[[skill-name]]` (use plain skill names instead) | WARN |
-| No subagent-specific language | "spawn a bounded review agent" → "conduct an independent review" | WARN |
+| Agent delegation uses intent language | Skills CAN describe subagent/delegation tasks — they just describe the WHAT, not the HOW. "Conduct an independent review with this prompt" is correct. "Use the Agent tool to spawn a subagent" is tool-specific. See "Cross-Tool Agent Delegation" below. | WARN |
+| Delegation has fallback behavior noted | If a skill requires agent delegation, it should note that the main agent can perform the task itself if subagents are unavailable | WARN |
 | Scripts use self-location | Python: `Path(__file__).parent`. Bash: `$(dirname "$0")`. Not env vars. | FAIL |
 | `compatibility` field lists external requirements | If the skill needs tools not bundled with the agent | WARN |
 
+### Cross-Tool Agent Delegation
+
+The Agent Skills spec describes subagent delegation as "an advanced pattern only supported by some clients." Skills that need independent review, parallel work, or delegated tasks should follow this pattern:
+
+**Correct (intent-based, portable):**
+```markdown
+## Step 4: Independent Review
+
+Conduct an independent review using this prompt. The reviewer should have
+no investment in closing the card — default to FAIL when evidence is ambiguous.
+
+[prompt structure follows]
+
+If your environment supports subagent delegation, run this as a separate
+agent session for isolation. Otherwise, conduct the review in the current
+session — the key requirement is independence of judgment, not a separate
+process.
+```
+
+**Incorrect (tool-specific mechanism):**
+```markdown
+## Step 4: Independent Review
+
+Use the Agent tool to spawn a subagent with subagent_type="code-reviewer":
+Agent({
+  description: "AC verification",
+  prompt: "..."
+})
+```
+
+**The principle:** describe the task, provide the prompt, note the fallback. Every agent tool knows how to delegate work in its own way — Claude Code uses the Agent tool, Codex uses subtasks, Cursor uses agent mode, Copilot uses its coding agent. The skill describes WHAT to delegate, not HOW to invoke the delegation mechanism.
+
 ## Dimension 5: Content Quality
 
-Is the skill well-written and effective?
+Is the skill well-written and effective? All checks apply to SKILL.md AND all files in `references/`, `scripts/`, and `assets/`.
 
 **Context classification is critical here.** Checks for person names, dates, and internal references will hit examples in checklists and anti-pattern documentation. Read each hit in context — a table cell showing `"Aaron said X" → state X directly` is an example of what to fix, not a violation.
 
@@ -117,7 +152,7 @@ Is the skill well-written and effective?
 
 ## Dimension 6: Security
 
-Would publishing this skill expose sensitive information?
+Would publishing this skill expose sensitive information? All checks apply to SKILL.md AND all files in `references/`, `scripts/`, and `assets/`.
 
 **Context classification applies here too** — a script that documents `os.environ.get("API_KEY")` as the correct pattern should not be flagged for containing "API_KEY". The check is whether the key is hardcoded, not whether the string appears.
 
@@ -150,15 +185,73 @@ Should this skill be gathering context it's currently guessing at?
 | Skill has a single linear workflow with no choices | No Q&A needed |
 | Skill gets all input from arguments or card descriptions | No Q&A needed |
 
+## Dimension 8: Trigger Accuracy
+
+Does the description actually activate on the right prompts? This is the highest-leverage quality check — a perfect skill with a bad description never fires.
+
+**Methodology:** Create 10 should-trigger and 10 should-not-trigger eval queries. Focus on near-misses (the hard cases), not obvious matches or clear non-matches.
+
+### Building eval queries
+
+**Should-trigger (10 queries):**
+- 3 exact-match: user says exactly what the skill does ("audit this skill", "save context before compact")
+- 3 synonym/rephrase: same intent, different words ("review this skill for quality", "checkpoint my session")
+- 2 contextual: user describes a problem the skill solves without naming it ("my spec file is 800 lines", "I lost context after compaction")
+- 2 edge-case: unusual phrasing that should still trigger ("is this skill any good?", "where was I working?")
+
+**Should-NOT-trigger (10 queries):**
+- 3 adjacent-domain: related but different skill's job ("create a new skill", "run my tests")
+- 3 partial-keyword: shares words but different intent ("compact this JSON", "restore this database backup")
+- 2 generic: broad requests that shouldn't activate a specific skill ("help me with this code", "what should I do next?")
+- 2 anti-trigger: explicitly NOT what the skill does ("don't audit anything", "skip the review")
+
+### Scoring
+
+| Result | Rating |
+|--------|--------|
+| 18-20 correct (90%+) | PASS |
+| 14-17 correct (70-89%) | WARN — description needs refinement |
+| <14 correct (<70%) | FAIL — description is mis-calibrated |
+
+### How to test
+
+Present each query and ask: "Would an agent reading this description decide to activate this skill?" The test is about the description text, not the full skill content. If the description is the only thing the agent sees (which it is at startup), does it make the right call?
+
+**Common failure modes:**
+- Too broad: triggers on adjacent domains (fix: add scope qualifiers like "for RSpec" or "using beads")
+- Too narrow: misses synonyms (fix: add "Also triggers on..." with alternate phrasings)
+- Wrong emphasis: triggers on keywords but not intent (fix: lead with the task, not the tool)
+
+References: [Optimizing Descriptions](https://agentskills.io/skill-creation/optimizing-descriptions) in the Agent Skills spec.
+
+## Dimension 9: Cross-Skill Consistency
+
+When auditing a skill that lives in a repo with sibling skills, check convention consistency. Intentional variation is fine — unexplained divergence is a WARN.
+
+**Pre-check:** List all sibling skills in the same repo (`ls skills/`). Read the first 30 lines of each sibling's SKILL.md for comparison.
+
+| Check | How to verify | Severity if failed |
+|-------|---------------|-------------------|
+| Mode detection table format | Do all multi-mode skills use the same table structure? (headers, column count) | WARN |
+| Gotchas section presence and style | Do all skills have a Gotchas section? Same heading name? | WARN |
+| Frontmatter field set | Do sibling skills use the same optional fields? (e.g., all have `license` and `compatibility`, or none do) | WARN |
+| Description trigger pattern | Do descriptions follow the same "Use when..." + "Also triggers on..." convention? | WARN |
+| Reference file naming | Do references/ files use consistent naming (kebab-case, descriptive, no abbreviations)? | WARN |
+| Related Skills section | Do all skills that reference siblings use plain names (not slash commands or wikilinks)? | WARN |
+
+**Key principle:** inconsistency between sibling skills signals one of two things: (1) intentional divergence that should be documented, or (2) a convention that drifted. Ask which. If the answer is "drift," fix it. If the answer is "intentional," note why in the audit report.
+
 ## Output Format
 
-After running all 7 dimensions, produce a report:
+After running all dimensions, produce a report:
 
 ```markdown
 # Skill Audit: <skill-name>
 
 ## Summary
 - **Total findings:** N real (X FAIL, Y WARN, Z PASS) + M false positives classified
+- **Marketplace status:** No better alternative found / Alternative found: [name] ([install count])
+- **Trigger accuracy:** [score]/20 ([PASS/WARN/FAIL])
 - **Publish readiness:** READY / NEEDS WORK / NOT PUBLISHABLE
 - **Top 3 fixes:** (highest impact changes)
 

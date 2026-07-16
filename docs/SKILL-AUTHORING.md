@@ -236,19 +236,42 @@ Slash commands (`/skill-name`) are Claude Code-specific. Wikilinks (`[[name]]`) 
 
 ## Portability
 
-Skills should work across Claude Code, Cursor, Codex, Copilot, Windsurf, Gemini, and Cline.
+Skills should work across Claude Code, Cursor, Codex, Copilot, Windsurf, Gemini, and Cline. The Agent Skills spec is a cross-tool standard — every major AI coding agent supports it.
 
 ### Avoid
 
-- Claude Code-specific features: `TodoWrite`, `TaskCreate`, `AskUserQuestion`, `.claude/hooks/`
-- Subagent-specific language: "spawn a bounded review agent with structured-output schema"
-- Tool-specific install paths: `~/.claude/skills/`, `.cursor/skills/`
+- **Tool-specific mechanism names**: `Agent tool`, `runSubagent`, `TodoWrite`, `TaskCreate`, `AskUserQuestion`, `context: fork`, `.claude/hooks/`
+- **Tool-specific install paths in content**: `~/.claude/skills/`, `.cursor/skills/` (OK in install instructions, not in skill workflow)
+- **Platform-specific env vars**: `$SKILL_DIR`, `$SKILLS_HOME` (the spec has no such standard)
 
 ### Instead
 
-- Use tool-neutral language: "conduct an independent review", "create a checklist"
-- Reference scripts by relative path (the agent resolves the full path)
-- State compatibility requirements in the frontmatter `compatibility` field
+- **Describe intent, not mechanism**: "conduct an independent review" not "use the Agent tool to spawn a subagent"
+- **Reference scripts by relative path**: the agent resolves the full path from the skill root
+- **State compatibility requirements in frontmatter**: use the `compatibility` field for external tool dependencies
+
+### Cross-Tool Agent Delegation
+
+The spec describes subagent delegation as "an advanced pattern only supported by some clients." But every major AI coding tool has SOME form of delegation — Claude Code has the Agent tool, Codex has subtasks, Cursor has agent mode, Copilot has its coding agent, Windsurf has Cascade, Gemini has agent capabilities.
+
+**The pattern for portable delegation:**
+
+1. **Describe the task**: what needs to be done, with what prompt
+2. **Note the isolation benefit**: why a separate session is better (independence, focus)
+3. **Provide fallback behavior**: "if subagents are unavailable, conduct the review in the current session"
+
+```markdown
+## Step 4: Independent Review
+
+Conduct an independent review using this prompt. If your environment
+supports subagent delegation, run this as a separate agent session for
+isolation. Otherwise, conduct the review in the current session — the
+key requirement is independence of judgment, not a separate process.
+
+[prompt structure follows]
+```
+
+**Why this works everywhere:** the skill describes WHAT to delegate, not HOW. Each tool maps the intent to its own mechanism. The fallback ensures the skill is functional even if delegation isn't supported — it degrades gracefully, not catastrophically.
 
 ## Multi-Mode Skills
 

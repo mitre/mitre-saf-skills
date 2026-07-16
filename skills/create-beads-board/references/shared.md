@@ -100,6 +100,56 @@ Key fields to match: `dolt_mode: "server"`, same host/port/user, a real `project
 
 ## Known Issues
 
+### First `bd init` fails with `schema migration: alter pre-existing dirty tables` (exit 1)
+
+The very first `bd init --server [--external]` against a fresh database can abort with:
+
+```
+Error: failed to open Dolt store: failed to initialize schema: schema migration:
+pending schema migrations alter pre-existing dirty tables:
+child_counters, comments, ... issues, labels, metadata
+```
+
+**What actually happened (verified 2026-07-02):** init DID create the database and the full schema, but left every table uncommitted in Dolt's working set (`dolt_status` shows them all as `new table`). bd's schema-migration step then refuses to `ALTER` uncommitted tables and bails — leaving a half-initialized board (server schema present, but **no local `.beads/metadata.json` written**, so no bd command can connect yet).
+
+This is NOT a "database migration needed" you fix by hand, and it is NOT a reason to drop the database. The migration is blocked purely by the dirty working set. Recovery is two steps:
+
+1. **Commit the working set bd already created**, so the tables are clean:
+   ```bash
+   dolt --host <host> --port <port> --user <user> --password "<password>" --no-tls \
+     sql -q "USE <database_name>; CALL DOLT_ADD('.'); CALL DOLT_COMMIT('-m','Initialize beads schema');"
+   ```
+2. **Re-run the exact same `bd init` command.** With clean tables the migration completes, init writes local config, installs hooks/AGENTS.md/integrations, auto-commits the beads files to git, and exits 0.
+
+Then confirm with bd's own tools (do not assert it by hand):
+```bash
+bd migrate schema   # idempotent → "✓ Schema already at vNN" means nothing pending
+bd status           # connects, shows issue counts → board works
+```
+
+Re-running init is safe: it detects the existing schema and does not recreate tables. The trailing `⚠ Setup incomplete … No dolt database found` on the successful run is the separate false-negative below.
+
+### False "Setup incomplete: No dolt database found" warning at end of init
+
+Filed upstream as [gastownhall/beads#4553](https://github.com/gastownhall/beads/issues/4553) — init diagnostics stat the local `.beads/dolt` dir, which server-mode repos intentionally don't have. bd 1.0.5 can end an otherwise-successful server-mode init with:
+
+```
+⚠ Setup incomplete. Some issues were detected:
+  • Database: No dolt database found
+Run bd doctor --fix to see details and fix these issues.
+```
+
+**Do NOT run `bd doctor --fix`, re-init, or add flags in response.** Verified 2026-07-02: the warning fires even when the database and full 28-table schema were created correctly, and it fires identically with and without `--external`. Verify read-only instead:
+
+```bash
+bd status        # connects and shows 0 issues → board works
+bd doctor        # (no --fix) database checks pass → warning was false
+dolt --host <host> --port <port> --user <user> --password "<password>" --no-tls \
+  sql -q "USE <database_name>; SHOW TABLES;"   # expect ~28 tables
+```
+
+If those pass, setup is complete — proceed to Step 3. Only if they fail is there a real problem.
+
 ### "Cannot merge with uncommitted changes" on `bd dolt pull`
 
 Every `bd remember`/`bd forget`/`bd config set` in server mode leaves the config table dirty. `bd dolt commit` silently no-ops on config-only changes (steveyegge/beads#4078, open as of v1.0.5).

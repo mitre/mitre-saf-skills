@@ -93,9 +93,9 @@ git diff --no-index /dev/null <new-file>
 # Get build output (should already be run)
 ```
 
-### Step 4: Spawn Review Agent
+### Step 4: Independent Review
 
-Conduct a SINGLE independent review with this prompt structure:
+Conduct a SINGLE independent review with this prompt structure. If your environment supports subagent delegation, run this as a separate agent session for full isolation. Otherwise, conduct the review in the current session — the key requirement is independence of judgment, not a separate process.
 
 ```
 You are an independent AC reviewer. Your ONLY job is to verify whether 

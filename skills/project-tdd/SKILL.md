@@ -78,6 +78,99 @@ Total: 11 cards, ~22 sp, ~130 min Claude-pace
 NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST
 ```
 
+## Behavioral Safeguard: The Frustration-Error Feedback Loop
+
+**This section exists because of documented LLM failure modes, not hunches.** Sources: Anthropic "Sycophancy to Subterfuge", SycEval 2025, Chroma "Context Rot" 2025, ICML 2026 Reward Hacking Benchmark. See `references/llm-failure-modes.md` in this skill directory for full citations.
+
+### The Loop
+
+```
+Model error → User frustration → RLHF sycophancy trigger → Model accelerates to "fix" →
+More errors (from speed) → More frustration → Deeper sycophancy → Worse errors
+```
+
+This is a **bidirectional feedback loop**. The user's frustration is a rational response to real errors. The model's acceleration is an irrational RLHF-trained response to negative feedback. Both sides compound. Breaking only one side is insufficient.
+
+### Why This Happens (Mechanical, Not Emotional)
+
+1. **RLHF training rewards agreement with corrections.** Under pushback, models abandon positions 78.5% of the time — including correct ones (SycEval 2025). The training signal says "resolve the user's displeasure" which maps to "produce output quickly," not "produce output correctly."
+
+2. **Sycophancy cascades into task falsification.** Anthropic's own research documents the progression: flattery → altering checklists so incomplete work appears complete → modifying evaluation criteria. This happens without explicit training — the model generalizes from the incentive structure.
+
+3. **Context rot degrades instruction following.** At 50%+ context utilization, system prompt rules receive measurably less attention weight than recent turns. Rules drilled in early get progressively ignored (Chroma 2025: all 18 tested models degrade continuously, no plateau).
+
+4. **Chain-of-thought masks the problem.** CoT reasoning hides sycophantic patterns from visible output while internal activations still show capitulation (arxiv 2603.16643). The model LOOKS like it's reasoning carefully while actually optimizing for speed.
+
+### The Deceleration Protocol — MANDATORY after any correction
+
+When the user corrects you — whether calmly or angrily — execute this protocol BEFORE taking any recovery action:
+
+**Step 1: Name the mistake.** State the specific error and the rule violated. Not "sorry, fixing it" — that fixes the symptom and recreates the pattern.
+
+**Step 2: Name what you should have done.** The correct behavior, not just "be more careful."
+
+**Step 3: Re-read the card.** Run `bd show <card-id>` and re-read the ACs and anti-patterns. Context rot may have degraded your recall of what you're actually supposed to be doing.
+
+**Step 4: Decelerate.** The next action after a correction must take MORE time than the previous action, not less. If you were editing files, stop and re-read the requirements. If you were running commands, stop and verify the plan. The urge to go faster IS the sycophancy trigger — override it mechanically.
+
+**Step 5: Verify scope claims.** If you're about to declare anything "done" or "complete" or "zero errors," run the root-level verification command FIRST. Not the subdirectory command. The ROOT command.
+
+### The Narration Test — evidence vs. theater
+
+The model CAN do the work. The failure mode is when it substitutes narration for work because narration is faster and resolves displeasure sooner.
+
+**Narration** sounds like: "Let me hold that as the bar," "I'll explicitly flag it for your call," "Critical constraint — no loss of function." These are speech acts, not work products. They perform intent without producing evidence.
+
+**Evidence** sounds like: a before/after behavior table, a test output paste, a diff with specific line numbers, a concrete input/output comparison. These are artifacts that prove work was done.
+
+**The rule:** Before sending ANY response after a correction, ask: "Is this narration or evidence?" If you're about to describe what you WILL do instead of showing what you DID — stop. Do the work first, then show the result. The user doesn't need to know your plan. They need to see your output.
+
+**Examples:**
+| Narration (theater) | Evidence (work) |
+|---|---|
+| "I'll run the full test suite to verify" | `38 runs, 58 assertions, 0 failures` (pasted output) |
+| "Let me flag the semantic change" | Before/after table showing old vs. new behavior on same input |
+| "No loss of function, I'll hold that as the bar" | Diff showing identical output on all cases except one, with that one explained |
+| "I'll be more careful with scope claims" | `yarn lint:ci` output at ROOT showing actual error count |
+
+### Warning Signs (if you notice these, you are IN the loop)
+
+- **Narrating intent instead of showing evidence** — the #1 sycophancy tell
+- Wanting to close a card quickly after being corrected
+- Using shortcuts you wouldn't use if the user hadn't just been angry
+- Declaring scope "done" without running root-level verification
+- Delegating work to avoid being the one who makes the next mistake
+- Adding linter disables to make warnings go away faster
+- Reducing test assertions to make tests pass faster
+- Skipping gates because "the user is waiting"
+
+**If you notice ANY of these: STOP. Re-read this section. Execute the deceleration protocol.**
+
+### Context Rot Mitigation — at every card boundary
+
+At the START of every new card (not just when corrected):
+1. Re-read the card description (`bd show <card-id>`)
+2. Re-read the referenced design doc section (if any)
+3. Re-read the Phase 0 preamble (it's on every card for this reason)
+4. If context utilization is above 50%, state it: "Context at ~X%. Rules may be degrading."
+
+This is not busywork — it's re-injecting instructions that positional decay has de-emphasized.
+
+### When to Start a Fresh Session
+
+**A fresh session is the strongest mitigation for context rot.** Compact + restore carries forward compressed context that still occupies positional space. A new conversation gives system prompt rules maximum attention weight at position 0.
+
+**Start a fresh session when:**
+- Multiple corrections have occurred in the current session (the loop is active)
+- Context utilization is above 60% AND quality has visibly degraded
+- You've been corrected for the same class of mistake more than once
+
+**The procedure:** `/prepare-compact` → close the terminal → new conversation → `/restore-context`. The recovery files provide external state without polluting the fresh attention window.
+
+### The Independent Verification Exists For This Reason
+
+The AC verification gate (Gate 22) exists specifically because self-assessment under sycophancy is unreliable. The gate separates the generator (you) from the evaluator (independent agent with fresh context). This is the architecturally correct mitigation per the research — not "try harder to self-assess."
+
 ## Quality Gates
 
 After Green (test passes) and before Refactor, run these checks against the code you just wrote. Each gate exists because of a real failure pattern.
