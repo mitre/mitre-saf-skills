@@ -240,8 +240,9 @@ Show the draft to the user: "Here's the ADR. What's missing or wrong?"
 ## Phase 4: Finalize and Hand Off
 
 1. Confirm the ADR status is "proposed" (becomes "accepted" after team review)
-2. Save the file
-3. Ask: "Ready to create cards from this plan? Invoke the project-card skill to create the epic and cards from the Implementation Plan section."
+2. **Commit the ADR on the feature/fix branch that will carry the work — NOT a separate docs branch.** The ADR and the implementation it plans belong on the same branch and in the same PR. Create or switch to the `feat/<name>` (or `fix/<name>`) branch the work will land on and commit the ADR there as that PR's first commit. Do **not** open a standalone `docs/<name>` branch for the ADR first: that splits the decision from its implementation across two PRs and forces a later branch rename or rebase. If the branch doesn't exist yet, create it now with the feature/fix name (not a docs-only name).
+3. Save the file
+4. Ask: "Ready to create cards from this plan? Invoke the project-card skill to create the epic and cards from the Implementation Plan section."
 
 ## Gotchas
 
@@ -249,6 +250,7 @@ Show the draft to the user: "Here's the ADR. What's missing or wrong?"
 - The implementation plan must be specific enough for the project-card skill to create testable cards. "Implement the feature" is not a plan. "Phase 1: add the model migration + factory + request spec" is.
 - ADRs are immutable once accepted. If a decision changes, create a new ADR that supersedes the old one — don't edit the original.
 - The "do nothing" alternative is always valid. If the problem isn't worth solving, the ADR should say so.
+- Don't stage the ADR on a throwaway `docs/` branch. It lives on the `feat/`|`fix/` branch that will carry the implementation, so the decision and the code ship together in one PR — the ADR is the first commit of the feature's PR, not a separate deliverable on its own branch.
 
 ## Related Skills
 
