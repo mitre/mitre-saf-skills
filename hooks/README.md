@@ -190,9 +190,54 @@ budget stayed spent and blocked the next day's work; time-based fixes were
 rejected because the clock cannot discharge an audit obligation. Full rationale,
 prior art and rejected designs are in that script's header.
 
+## The card and skill-invocation gates
+
+The same reasoning, applied earlier in the workflow: a card that is not properly
+formed cannot be reviewed against, and a review that was never run cannot be
+cited. These arrived here on 2026-08-11 with the set above, for the same reason
+— unversioned enforcement is unreviewable enforcement.
+
+### validate-bd-create.sh
+
+Blocks `bd create` unless the description carries all twelve mandatory card
+sections. Exit 0 allows, exit 2 blocks with the missing sections named on stderr.
+
+It reads the body out of a file when the command passes one by substitution
+(`--description="$(cat /path/card.md)"`) — the flow `project-card` mandates,
+because a card body must never travel through a shell heredoc, where backticks
+in card prose execute and safety tooling matches ordinary English inside the
+text.
+
+**Defect fixed 2026-08-11:** the accepted path pattern was `/tmp/...` only. On
+macOS the per-session scratchpad is `/private/tmp/...` (and `/tmp` is a symlink
+to it), so the file was never opened and the hook reported all twelve sections
+missing on a card that had all twelve — pushing the author toward precisely the
+two things the rules forbid, an inline heredoc or a hard-coded directory. Any
+absolute path is now accepted. Regression covered by
+`tests/test_validate_bd_create.py` case 2, mutation-confirmed.
+
+### gate22-require-skill.sh / gate22-mark-skill.sh
+
+`require` enforces that Gate 22 is satisfied by *invoking* the
+`project-ac-verify` skill, not by a hand-written stand-in — prose in the skill
+did not prevent that substitution on 2026-08-09, so it became a hook. `mark`
+records each real invocation, with its card, as an audit trail.
+
+**Known inconsistency, recorded rather than papered over:** `ac-gate-tiered.sh`
+cites the marker as an independent cross-check in its honesty statement, while
+`gate22-mark-skill.sh` states that nothing reads it any more. Both cannot be
+true. Either the gate should consult it or the claim should be dropped; until
+that is decided the marker is an audit log, not a control.
+
+### validate-settings.sh
+
+Checks that the agent's `settings.local.json` is well-formed JSON. Small, but
+the settings file is what wires every other hook — a corrupted one disables the
+whole layer silently.
+
 ### Tests
 
-`tests/test_ac_gate_hook.py` runs all three suites (30 cases). They target hooks
+`tests/test_ac_gate_hook.py` runs all four suites (35 cases). They target hooks
 that exist — a point worth stating, because the suite this replaced pointed at a
 hook that had been deleted, and since a missing hook prints nothing and the
 harness reads silence as ALLOW, its DENY cases failed unnoticed for weeks.
@@ -200,6 +245,45 @@ harness reads silence as ALLOW, its DENY cases failed unnoticed for weeks.
 ```bash
 python3 hooks/tests/test_ac_gate_hook.py
 ```
+
+**Coverage is honest, not complete.** Covered: credit accounting, the gate's
+tiers, the agent block, the card gate. Not covered: the gate's stale-hash and
+clean-allow paths (they need the canonical generator plus a real git tree — card
+`mitre-saf-skills-x6r.4`), `write-target-guard.sh`, the gate22 pair, and
+`validate-settings.sh`. Untested enforcement is how the two defects fixed on
+2026-08-11 survived, so treat that list as debt rather than as scope.
+
+## Session and compaction hooks
+
+Not gates — these shape what the agent knows rather than what it may do. They
+are here for the same reason as the gates: behavior-shaping machinery that
+exists on one machine and nowhere else cannot be reviewed or restored.
+
+- **`session-start-rules.sh`** — prints the authorship rules at session start,
+  where they cannot be missed. Prominence is the point; the same text in a file
+  the agent may or may not read is not equivalent.
+- **`pre-compact-save-state.sh`** — PreCompact reminder, and cleans up beads
+  worktrees that would otherwise block git operations. It deliberately does NOT
+  write recovery files: that belongs to the `prepare-compact` skill, which the
+  user invokes. A hook that wrote them would make a user-invoked operation
+  automatic.
+- **`post-compact-restore-state.sh`** — loads recovery context after a compact
+  and validates that settings are not corrupted.
+
+## Two installation models — an inconsistency to resolve
+
+Right now the same directory is consumed two different ways:
+
+- `write-target-guard.sh` and `declare-write-target.sh` are invoked by
+  `settings.json` **at their repository path**. There is no installed copy; the
+  repo is the runtime.
+- Everything else runs from a **copy** in `~/.claude/hooks`.
+
+Both work. Having both is the problem: which file is running depends on which
+hook you are asking about, drift is possible for one set and impossible for the
+other, and a release process cannot be defined over a mixture. Unifying them —
+copy from a known ref, manifest, verify — is card `mitre-saf-skills-ed8`. Until
+then, check the copied set with the drift loop above.
 
 ## Installation
 
