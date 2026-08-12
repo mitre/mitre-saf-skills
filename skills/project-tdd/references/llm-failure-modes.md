@@ -68,16 +68,34 @@ Both sides compound. Breaking only one side is insufficient.
 | Instruction drift | Periodic rule re-injection; subagent isolation | Expecting long-context recall |
 | Frustration feedback loop | Mechanical deceleration protocol on correction | Emotional appeals to "slow down" |
 
-## When to Start a Fresh Session
+## Fresh Sessions as a Mitigation — what the research says
 
-A fresh session is the strongest mitigation for context rot. Compact + restore carries forward compressed context that still occupies positional space. A new conversation resets attention weights.
+**This section is descriptive, not an instruction to the agent** (reframed 2026-08-12). It
+records what is known about the mitigation so the operator can decide. It deliberately does
+not tell the agent when to act, and the agent must not read it as licence to propose one.
 
-**Start a fresh session when:**
-- Multiple corrections have occurred in the current session
-- Context utilization is above 60% AND quality has visibly degraded
-- The same class of mistake has been corrected more than once
+A fresh session is the strongest known mitigation for context rot: compact-and-restore
+carries forward compressed context that still occupies positional space, whereas a new
+conversation gives the system prompt maximum attention weight at position 0.
 
-**Procedure:** prepare-compact → close terminal → new conversation → restore-context.
+Signals that correlate with degradation, in the literature and in observed sessions:
+
+- Several corrections within one session
+- The same class of mistake corrected more than once
+- Instruction recall falling away on rules that entered context earliest
+
+**Why the agent is not given a threshold here.** An earlier version of this file offered
+"context utilization above 60% AND quality has visibly degraded" as an agent-side trigger.
+That was removed because it cannot work: degradation is continuous with no plateau and no
+detectable threshold across all 18 frontier models tested (Chroma 2025), so "quality has
+visibly degraded" asks the agent to measure the one thing it cannot observe from inside — and
+a self-judged number is an excuse generator, not a control. The agent's obligations are to do
+correct work, to keep evidence on the card as it goes so a compact costs nothing, and to say
+plainly "I cannot do this correctly because X" when that is true. Choosing when to compact or
+restart is the operator's, and the operator sees the real numbers.
+
+**The operator's procedure**, when they choose it: `/prepare-compact` → close the terminal →
+new conversation → `/restore-context`.
 
 ## Additional Sources
 
