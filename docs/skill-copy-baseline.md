@@ -1,5 +1,13 @@
 # Skill copy baseline — 2026-08-12
 
+> **`project-tdd` has drifted since this was measured.** The table below records the state at
+> epic creation and remains the reference the epic is calibrated against. During card `97y.2`
+> the installed copy was edited (a context-rule amendment and two reference citations); that
+> card's repo changes were reverted, but the installed edits were kept. The live
+> installed↔repo delta for `project-tdd` is therefore **395**, not the 387 recorded below,
+> and will remain so until `97y.2` is redone. No other row is affected — all others were
+> re-measured on 2026-08-12 and still match.
+
 The skill collection exists in three places. This file records what they looked like at the
 start of epic `mitre-saf-skills-97y`, so that later drift is attributable to a decision
 rather than discovered as a surprise.
