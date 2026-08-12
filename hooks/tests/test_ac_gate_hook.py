@@ -18,6 +18,8 @@ Its cases now live in files that target hooks which exist:
                                regression that reported a complete card as empty
   test_session_hooks.py        the four session/compaction hooks — including the pinned
                                regression that pre-compact must never write recovery files
+  test_claude_config_sync.py   the chezmoi capture hook — asserts it never commits, never
+                               pushes, and can never block a session
 
 KNOWN GAP, stated rather than implied: no suite covers the stale-hash path or the clean
 ALLOW-and-record path, both of which need the canonical generator and a real git tree.
@@ -34,6 +36,7 @@ SUITES = [
     "test_ac_review_agent_hook.py",
     "test_validate_bd_create.py",
     "test_session_hooks.py",
+    "test_claude_config_sync.py",
 ]
 
 failed = []

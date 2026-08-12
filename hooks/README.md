@@ -235,9 +235,34 @@ Checks that the agent's `settings.local.json` is well-formed JSON. Small, but
 the settings file is what wires every other hook — a corrupted one disables the
 whole layer silently.
 
+### claude-config-sync.sh
+
+Keeps chezmoi's copy of `~/.claude` current. Wired to `SessionStart` (captures
+the previous session's writes, then reports uncommitted or unpushed work) and
+`PreCompact` (insurance mid-session).
+
+`~/.claude` config is human-edited occasionally, but **agent memory is written
+constantly** — hundreds of files that change most sessions. A copy-based scheme
+with no automation therefore rots by default: the repository silently falls
+behind the thing it exists to protect.
+
+It **captures only**: `chezmoi re-add` for managed files that changed, `chezmoi
+add` for memory that did not exist yet. It never commits and never pushes —
+auto-committing agent-written memory across several machines manufactures
+conflicts nobody authored, and a commit is the owner's call, like a push.
+Capture is the part that must be automatic, because lost memory cannot be
+recovered; committing can happen later from a current source.
+
+It also can never block a session: every failure path exits 0.
+
+```bash
+claude-config-sync.sh --capture   # source only, no git
+claude-config-sync.sh --report    # what still needs committing or pushing
+```
+
 ### Tests
 
-`tests/test_ac_gate_hook.py` runs all five suites (49 cases). They target hooks
+`tests/test_ac_gate_hook.py` runs all six suites (61 cases). They target hooks
 that exist — a point worth stating, because the suite this replaced pointed at a
 hook that had been deleted, and since a missing hook prints nothing and the
 harness reads silence as ALLOW, its DENY cases failed unnoticed for weeks.
