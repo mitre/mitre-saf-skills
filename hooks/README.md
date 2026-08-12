@@ -237,7 +237,7 @@ whole layer silently.
 
 ### Tests
 
-`tests/test_ac_gate_hook.py` runs all four suites (35 cases). They target hooks
+`tests/test_ac_gate_hook.py` runs all five suites (49 cases). They target hooks
 that exist — a point worth stating, because the suite this replaced pointed at a
 hook that had been deleted, and since a missing hook prints nothing and the
 harness reads silence as ALLOW, its DENY cases failed unnoticed for weeks.
@@ -247,11 +247,18 @@ python3 hooks/tests/test_ac_gate_hook.py
 ```
 
 **Coverage is honest, not complete.** Covered: credit accounting, the gate's
-tiers, the agent block, the card gate. Not covered: the gate's stale-hash and
-clean-allow paths (they need the canonical generator plus a real git tree — card
-`mitre-saf-skills-x6r.4`), `write-target-guard.sh`, the gate22 pair, and
-`validate-settings.sh`. Untested enforcement is how the two defects fixed on
-2026-08-11 survived, so treat that list as debt rather than as scope.
+tiers, the agent block, the card gate, and the four session/compaction hooks.
+Not covered: the gate's stale-hash and clean-allow paths (they need the canonical
+generator plus a real git tree — card `mitre-saf-skills-x6r.4`), the gate22 pair,
+and `write-target-guard.sh`. Untested enforcement is how the defects fixed on
+2026-08-11/12 survived, so treat that list as debt rather than as scope.
+
+The session-hook suite pins one regression deliberately:
+`pre-compact-save-state.sh` **must not write recovery files**. Writing recovery
+state belongs to the `/prepare-compact` skill the user invokes, never to a hook
+that fires automatically — and a stale copy of that hook, carrying the original
+file-writing behavior, was found in a second repository on 2026-08-12 where an
+apply would have restored it silently. The test fails if the behavior returns.
 
 ## Session and compaction hooks
 
@@ -270,20 +277,29 @@ exists on one machine and nowhere else cannot be reviewed or restored.
 - **`post-compact-restore-state.sh`** — loads recovery context after a compact
   and validates that settings are not corrupted.
 
-## Two installation models — an inconsistency to resolve
+## One installation model (unified 2026-08-12)
 
-Right now the same directory is consumed two different ways:
+Every hook runs from a copy in `~/.claude/hooks`, and `settings.json` names only
+paths there. The repository is the source; it is never the runtime.
 
-- `write-target-guard.sh` and `declare-write-target.sh` are invoked by
-  `settings.json` **at their repository path**. There is no installed copy; the
-  repo is the runtime.
-- Everything else runs from a **copy** in `~/.claude/hooks`.
+Until 2026-08-12 `write-target-guard.sh` and `declare-write-target.sh` were the
+exception: `settings.json` invoked them **at their repository path**, with no
+installed copy. That was a live hazard rather than an untidiness. The hooks
+directory is tracked on a feature branch and absent from `main`, so `git switch
+main` deletes it from the working tree — and the file `settings.json` points at
+for the guard that protects *every write* would simply cease to exist, silently.
+A control whose presence depends on which branch is checked out is not a control.
 
-Both work. Having both is the problem: which file is running depends on which
-hook you are asking about, drift is possible for one set and impossible for the
-other, and a release process cannot be defined over a mixture. Unifying them —
-copy from a known ref, manifest, verify — is card `mitre-saf-skills-ed8`. Until
-then, check the copied set with the drift loop above.
+Both are now installed copies like the rest. `write-target-guard.sh` resolves its
+`declare-write-target.sh` sibling via `${BASH_SOURCE[0]%/*}`, so the guidance it
+prints points at whichever copy is running — install both together or neither.
+
+What remains for card `mitre-saf-skills-ed8` is the *provenance* half: an
+`install.sh` that records the source ref and per-file SHA-256, and a `--verify`
+that detects drift. Until it lands, installation is by hand and drift is found
+with the loop above — which is not theoretical: editing a hook in the repo left
+the installed copy stale within minutes on 2026-08-12, and the stale copy is what
+runs.
 
 ## Installation
 
