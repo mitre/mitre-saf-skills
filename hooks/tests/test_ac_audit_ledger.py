@@ -22,10 +22,12 @@ HOOKS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HELPER = os.path.join(HOOKS_DIR, "ac-audit-ledger.sh")
 
 
-def sh(*args, state=None):
+def sh(*args, state=None, markers=None):
     env = dict(os.environ)
     if state:
         env["AC_REVIEW_STATE_DIR"] = state
+    if markers:
+        env["AC_VERIFY_MARKER_DIR"] = markers
     p = subprocess.run(["bash", HELPER, *args], capture_output=True, text=True,
                        env=env, timeout=30)
     return p.returncode, p.stdout.strip(), p.stderr.strip()
@@ -153,6 +155,46 @@ def _(state):
     sh("record", "repo@feature/b", "gate=g2 card=c2", state=state)
     assert count(state, "repo@feature/a") == 1
     assert count(state, "repo@feature/b") == 1, "sanitization must not merge two branches"
+
+
+@case("13. marker lookup reports yes when the skill was invoked for THIS card")
+def _(state):
+    md = os.path.join(state, "markers")
+    os.makedirs(md)
+    with open(os.path.join(md, "session-a.invoked"), "w") as fh:
+        fh.write("2026-08-11T23:55:20Z heimdall2-yvx.7\n")
+    rc, out, _e = sh("marker", "heimdall2-yvx.7", state=state, markers=md)
+    assert rc == 0 and out == "yes", f"got {out!r}"
+
+
+@case("14. marker lookup reports no when no marker exists at all")
+def _(state):
+    rc, out, _e = sh("marker", "heimdall2-yvx.7", state=state,
+                     markers=os.path.join(state, "markers"))
+    assert rc == 0 and out == "no", f"absent marker must be reported, not crash: {out!r}"
+
+
+@case("15. marker lookup does not match a DIFFERENT card, or a prefix of one")
+def _(state):
+    md = os.path.join(state, "markers")
+    os.makedirs(md)
+    with open(os.path.join(md, "session-a.invoked"), "w") as fh:
+        fh.write("2026-08-11T10:00:00Z heimdall2-e25.12\n")
+    rc, out, _e = sh("marker", "heimdall2-e25.1", state=state, markers=md)
+    assert out == "no", \
+        "e25.1 must not be satisfied by a marker for e25.12 — a prefix is not the card"
+
+
+@case("16. marker lookup searches every session's file, not just one")
+def _(state):
+    md = os.path.join(state, "markers")
+    os.makedirs(md)
+    with open(os.path.join(md, "session-a.invoked"), "w") as fh:
+        fh.write("2026-08-10T10:00:00Z other-card\n")
+    with open(os.path.join(md, "session-b.invoked"), "w") as fh:
+        fh.write("2026-08-11T10:00:00Z heimdall2-yvx.7\n")
+    rc, out, _e = sh("marker", "heimdall2-yvx.7", state=state, markers=md)
+    assert out == "yes", "a skill invoked in an earlier session still counts as invoked"
 
 
 @case("10. a malformed watermark fails CLOSED (counts everything, never crashes)")

@@ -143,6 +143,28 @@ case "$CMD" in
     mkdir -p "$STATE_DIR"
     printf '%s %s\n' "$(now)" "$*" >> "$(ledger_path "$key")"
     ;;
+  marker)
+    # Did the project-ac-verify SKILL actually run for this card? gate22-mark-skill.sh
+    # records every real invocation as "<iso> <args>" in a per-session .invoked file.
+    #
+    # This is EVIDENCE, NOT A GATE, and must never become one: the marker is written in
+    # response to the model's own action, so proof-of-invocation is not proof-of-review
+    # and no marker the model can trigger ever could be (gate22-mark-skill.sh, 2026-08-09,
+    # which is why enforcement was moved off it). What it is good for is the audit: an
+    # allowed self-resolution carrying no recorded invocation is an anomaly worth seeing.
+    # The gate records this answer in the ledger line so the auditor reads one file
+    # instead of hand-joining session-keyed markers to a repo-keyed ledger.
+    [ $# -ge 1 ] || { echo "usage: ac-audit-ledger.sh marker <card>" >&2; exit 2; }
+    mdir="${AC_VERIFY_MARKER_DIR:-${HOME}/.claude/state/ac-verify}"
+    if [ -d "$mdir" ] && awk -v c="$1" '
+          { for (i = 2; i <= NF; i++) if ($i == c) found = 1 }
+          END { exit !found }
+        ' "$mdir"/*.invoked 2>/dev/null; then
+      printf 'yes\n'
+    else
+      printf 'no\n'
+    fi
+    ;;
   ack)
     [ $# -ge 1 ] || { echo "usage: ac-audit-ledger.sh ack <key>" >&2; exit 2; }
     mkdir -p "$STATE_DIR"
@@ -163,6 +185,8 @@ ac-audit-ledger.sh — credit accounting for AC-gate self-resolutions
   list   <key>              show them
   record <key> "<fields>"   append one (the gate calls this)
   ack    <key>              record that they have been audited (Aaron)
+  marker <card>             yes|no — did the project-ac-verify SKILL run for it?
+                            (evidence recorded in the ledger, never a gate)
 USAGE
     exit 2
     ;;

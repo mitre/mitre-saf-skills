@@ -37,10 +37,22 @@
 #   and no in-process scheme can cryptographically distinguish its writes from
 #   the model's — a deliberate multi-step fabrication remains possible. The
 #   countermeasures are detection, not impossibility: the ledger records every
-#   self-resolution with the evidence it relied on, gate22-mark-skill.sh
-#   independently timestamps skill invocations for cross-checking, and Aaron
-#   audits the ledger. Honest-path cheap, bypass auditable — the same
-#   philosophy as bd close --force being blocked rather than hidden.
+#   self-resolution with the evidence it relied on — including skill_marker=,
+#   which says whether gate22-mark-skill.sh saw the project-ac-verify SKILL run
+#   for that card — and Aaron audits the ledger. Honest-path cheap, bypass
+#   auditable — the same philosophy as bd close --force being blocked rather
+#   than hidden.
+#
+#   The marker is EVIDENCE, NEVER A CONDITION. It is written in response to the
+#   model's own action, so proof-of-invocation is not proof-of-review, and no
+#   marker the model can trigger ever could be — which is why enforcement was
+#   moved off it on 2026-08-09. Requiring it would add friction and no
+#   assurance. Recording it makes the anomaly visible: an allowed
+#   self-resolution with no invocation on record.
+#   (Corrected 2026-08-11: this block previously claimed the marker served as an
+#   independent cross-check while NOTHING read it — the claim was true of the
+#   design's intent and false of the code. It is now read at decision time and
+#   written into the ledger line.)
 #
 # Board hygiene is preserved: the guard engages only on gates whose stored
 # description carries the AC-verify reason written at card start by project-tdd
@@ -206,8 +218,16 @@ Then this resolves normally. To sign this one yourself instead: bd gate resolve 
 
   # ---- TIER 2 satisfied: allow, and take one credit until Aaron audits -----
   # session= is recorded for forensics but is deliberately NOT the key.
+  #
+  # skill_marker= records whether gate22-mark-skill.sh saw the project-ac-verify SKILL
+  # run for this card. It is NEVER a condition of allowing — the marker is written in
+  # response to the model's own action, so proof-of-invocation is not proof-of-review.
+  # It is recorded because an allowed self-resolution with NO recorded invocation is an
+  # anomaly the auditor should see, and putting it in the ledger line means reading one
+  # file instead of hand-joining session-keyed markers to a repo-keyed ledger.
+  MARKER="$("$LEDGERER" marker "$BLOCKED_CARD" 2>/dev/null || echo unknown)"
   "$LEDGERER" record "$KEY" \
-    "gate=$ID card=$BLOCKED_CARD diff_sha=$V_DIFF crit_sha=$V_CRIT session=$SESSION"
+    "gate=$ID card=$BLOCKED_CARD diff_sha=$V_DIFF crit_sha=$V_CRIT skill_marker=$MARKER session=$SESSION"
   exit 0
 done
 
