@@ -8,10 +8,18 @@ description: >-
   "remote" alone is the upgrade path — adds the Dolt sync remote to an existing
   board after you create the GitHub repo. The arg IS the mode — run it, do not
   re-derive or ask. Use when initializing beads in
-  a new repo, connecting to a shared Dolt server, troubleshooting bd init, or
-  migrating from embedded to shared mode. Triggers on "set up beads", "create a
-  board", "init beads", "connect to the beads server", "new beads board", or
-  "set up issue tracking".
+  a new repo, connecting to a shared Dolt server, troubleshooting bd init,
+  migrating from embedded to shared mode, or recovering a board whose schema
+  version is behind (bd refusing to auto-apply pending schema migrations on a
+  remote-backed database, or a migration blocked by dirty tables). ALSO the home
+  for recurring bd/Dolt sync failures — consult it BEFORE debugging any bd error
+  from bd's help, source, or issue tracker, because the identifiers bd prints do
+  not always match where the fix is documented. Triggers on
+  "set up beads", "create a board", "init beads", "connect to the beads server",
+  "new beads board", "set up issue tracking", "migrate the board", "bd migrate
+  failed", "pending schema migrations", "bd dolt pull failed", "dirty internal
+  config key", "issue_prefix", "GH#2455", "refusing to auto-commit", or "cannot
+  merge with uncommitted changes".
 argument-hint: "[local | shared | shared external | shared external remote | remote]"
 compatibility: Requires beads CLI (bd). Shared/remote modes require a running dolt sql-server.
 license: Apache-2.0
@@ -182,6 +190,23 @@ On the Dolt server (shared mode only):
 - A new database named after the prefix (hyphens become underscores)
 - Full schema (~28 tables): issues, dependencies, events, labels, comments, etc.
 
+## Viewer Integration — enable auto-export (for beads-board & other file-based viewers)
+
+Boards viewed through a **file-based viewer** — the `beads-board` tool's `github` /
+`local` / `jsonl-url` adapters, or any tool that reads `.beads/issues.jsonl` off GitHub —
+must publish their export. The authoritative Dolt history (under `refs/dolt/data`) and the
+shared Dolt server are NOT readable as JSON, so the committed export file is what these
+viewers read. After `bd init`, enable it:
+
+```bash
+bd config set export.auto true      # refresh .beads/issues.jsonl after writes (for viewer integrations)
+bd config set export.git-add true   # stage the export so it lands in commits
+```
+
+Then commit + push the repo so the export is on the remote. Without this, a file-based
+viewer sees no data. Live-Dolt viewers (shared server / `dolt-remote` / `bd`) don't need
+this. Full requirements: the beads-board project's `docs/REQUIREMENTS.md`.
+
 ## Troubleshooting
 
 Diagnose read-only FIRST: run `bd doctor` (no `--fix`) and `bd status`, and read what they actually report before changing anything. Only reach for `bd doctor --fix` after confirming a real failure — init can print a false "No dolt database found" warning on a healthy board (see [references/shared.md](references/shared.md)).
@@ -190,6 +215,13 @@ bd moves fast and flags change between releases — if a command here errors or 
 
 **First `bd init` exits 1 with `schema migration: … alter pre-existing dirty tables`:** init created the schema but left it uncommitted, blocking its own migration. Commit the working set (`CALL DOLT_ADD('.')` + `CALL DOLT_COMMIT`) then re-run the same init — full recovery in [references/shared.md](references/shared.md). Do NOT drop the database or hand-migrate.
 
+**Every bd command fails with `refusing to auto-apply N pending schema migrations to a remote-backed database`:** the board needs a schema-version bump (e.g. v46 → v54) and bd will not do it unattended, because migrating two clones independently forks the schema silently and unrecoverably. **Confirm with the human that this machine is the sole migrator before proceeding.** Then note the trap: setting `BD_ALLOW_REMOTE_MIGRATE=1` reveals a *second* error — dirty tables — whose suggested fix (`bd dolt commit`) also fails, because bd will not open an unmigrated database. Break the deadlock by committing the working set with the Dolt client directly, then re-run the migration and **push**. Full recovery in [references/schema-migration.md](references/schema-migration.md).
+
+**`bd dolt pull` fails with `refusing to auto-commit 1 dirty internal config key(s) before pull: issue_prefix` (or `Cannot merge with uncommitted changes`):** a one-line `DOLT_ADD('config')` + `DOLT_COMMIT` through the Dolt client fixes it — recovery command in [references/shared.md](references/shared.md). Do NOT debug this from bd's help, source, or issue tracker: bd cites `GH#2455` while the fix is tracked as `#4078`, so the identifier bd prints leads nowhere. `bd dolt commit` claims success without clearing it, and `bd config set issue_prefix` is rejected — both are dead ends. Recurs after every `bd remember`; push is unaffected.
+
+**Before debugging ANY bd error, grep this skill first:** `grep -rn "<distinctive phrase from the error>" ~/.claude/skills/create-beads-board/`. bd's error strings and these headings do not always share vocabulary, so also try the symptom in your own words. Every recurring failure below was rediscovered the hard way at least once by someone who went to bd's source instead.
+
 For mode-specific problems, see the reference for your mode:
 - [references/shared.md](references/shared.md) — first-init dirty-tables recovery, dirty config bug, nil global_project_id, Dolt remote constraints
-- [references/migration.md](references/migration.md) — embedded-to-shared migration gotchas
+- [references/migration.md](references/migration.md) — embedded-to-shared **mode** migration gotchas
+- [references/schema-migration.md](references/schema-migration.md) — **schema-version** migration on a remote-backed board: the fork gate, the commit/open deadlock, and the sole-migrator precondition

@@ -150,7 +150,29 @@ dolt --host <host> --port <port> --user <user> --password "<password>" --no-tls 
 
 If those pass, setup is complete — proceed to Step 3. Only if they fail is there a real problem.
 
-### "Cannot merge with uncommitted changes" on `bd dolt pull`
+### `bd dolt pull` blocked by a dirty config table — `issue_prefix`, `GH#2455`, "Cannot merge with uncommitted changes"
+
+**The error text is reproduced here verbatim so that grepping what the terminal printed finds this
+section.** It previously did not: bd names the key `issue_prefix` and cites `GH#2455`, while this
+fix is tracked as `steveyegge/beads#4078` under a heading with none of those words. Searching the
+issue number or key name that bd hands you returns only bd's own source. That mismatch cost a full
+debugging detour on 2026-08-15 on a board where the fix was already documented.
+
+```
+failed to commit pending changes before pull: refusing to auto-commit 1 dirty
+internal config key(s) before pull: issue_prefix; only user kv.* keys auto-commit
+before a pull (GH#2455) — commit or revert these explicitly with `bd dolt commit` first
+```
+```
+Cannot merge with uncommitted changes
+```
+
+Two dead ends, recorded so nobody re-walks them:
+- `bd dolt commit` prints `Committed.` and does **not** clear the flag — it silently no-ops on
+  config-only changes. Running it again does not help.
+- `bd config set issue_prefix <value>` is rejected outright (`cannot be set via 'bd config set'`).
+
+`bd dolt push` is unaffected; only pull is blocked.
 
 Every `bd remember`/`bd forget`/`bd config set` in server mode leaves the config table dirty. `bd dolt commit` silently no-ops on config-only changes (steveyegge/beads#4078, open as of v1.0.5).
 
