@@ -121,7 +121,7 @@ CARD_PATHS="$(printf '%s\n' "$FILES_SECTION" \
   | sed -E 's/\([^)]*\)//g' \
   | tr ' ,' '\n' \
   | sed -E 's/[[:space:]]+//g; s/[.,;:]+$//' \
-  | grep -E '^\.?[A-Za-z0-9_][A-Za-z0-9_./-]*$' \
+  | grep -E '^\.?[A-Za-z0-9_][A-Za-z0-9_./{}-]*$' \
   | grep -E '/|\.|^[A-Z][A-Za-z]*file$' \
   | grep -Ev '^(e\.g|i\.e|etc|vs)\.?$' \
   | grep -Ev '^[0-9.]+$' \
