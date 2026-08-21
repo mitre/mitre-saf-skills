@@ -11,8 +11,8 @@ python3 ~/.claude/hooks/tests/test_ac_review_agent_hook.py  # 8 cases
 Both exit non-zero on any failure. The agent-hook suite generates a REAL
 canonical prompt, so it must be run from inside a git repo that has a beads
 card with acceptance criteria and a non-empty diff against its base
-(`docker-trusted-bases` / `dtb-igf.2` at time of writing — change the
-constants at the top if that card closes).
+Set AC_REVIEW_TEST_REPO and AC_REVIEW_TEST_CARD to name it; both
+default to nothing machine-specific.
 
 ## Why these exist
 

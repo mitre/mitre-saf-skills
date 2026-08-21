@@ -92,7 +92,7 @@ fi
 # asserts separately.
 #
 # PROJECT-AGNOSTIC. The previous version scraped the id with a regex hardcoded
-# to beads-board's prefix (`-b7i`), so it could not see dtb-igf.2, heimdall2-e25
+# to beads-board's prefix (`-b7i`), so it could not see cards on other boards
 # or any other project's ids — every review outside that one repo was denied for
 # "names no card id". Worse, a free-text scrape can match mid-word: that is how
 # "nbeads-board-b7i.14.5" got through and regenerated a prompt for a card that
@@ -125,7 +125,7 @@ norm() { tr -s '[:space:]' ' ' | sed 's/^ //; s/ $//'; }
 # argument. BSD grep answers that with "grep: out of memory" and a non-zero
 # exit, which the `if` then reads as "the prompt does not match". The hook
 # therefore DENIED THE CORRECT PROMPT, with both hashes identical in its own
-# debug line (observed 2026-08-09 on dtb-igf.2: canonical=384f9499…
+# debug line (observed 2026-08-09: canonical=384f9499…
 # given=384f9499…). Every project would have deadlocked exactly as before, and
 # the failure is silent — grep's message goes to stderr, which nothing reads.
 #
