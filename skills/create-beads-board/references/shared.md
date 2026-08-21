@@ -42,9 +42,10 @@ bd init \
 Add the repo's GitHub URL as the Dolt remote so `bd dolt push` / `bd dolt pull` work for the whole team. The `git+https://` scheme is the standard for Dolt remotes backed by GitHub repos:
 
 ```bash
-bd dolt remote add origin git+https://github.com/<org>/<repo>.git
-bd dolt push
+bd dolt push   # bd ≥ 1.1.0: auto-configures origin from the git origin, then pushes
 ```
+
+On bd ≥ 1.1.0, `bd dolt remote add origin <same URL as git origin>` is refused ("this URL matches the git origin", hint `--allow-git-origin`) — that refusal is expected, not an error; `bd dolt push` registers the remote itself. Only run `remote add` explicitly on older bd or when the Dolt remote URL deliberately differs from the git origin.
 
 This stores Dolt's version history (refs/dolt/data) in the same GitHub repo as the code. Each database must have its own remote — multiple databases cannot share one GitHub remote URL.
 
@@ -193,10 +194,9 @@ As of bd v1.0.5 (pre-release), `global_project_id` in metadata.json may show `00
 
 ### "No Dolt remote configured" warning
 
-If you skipped Step 3, you'll see this warning. Fix it by adding the remote:
+If you skipped Step 3, you'll see this warning. Fix it by pushing (bd ≥ 1.1.0 configures the remote from the git origin; on older bd run `bd dolt remote add origin git+https://github.com/<org>/<repo>.git` first):
 
 ```bash
-bd dolt remote add origin git+https://github.com/<org>/<repo>.git
 bd dolt push
 ```
 

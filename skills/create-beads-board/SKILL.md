@@ -102,11 +102,22 @@ BEADS_DOLT_PASSWORD="" bd init --server --external \
    - No `origin` → `bd dolt remote add origin <url>`
    - `origin` already set to the same URL → skip (nothing to do)
    - `origin` set to a *different* URL → report it and stop; do not silently overwrite.
+
+   **bd ≥ 1.1.0 refuses `remote add` when the URL equals the git origin** (verified 2026-08-21, pty-exec):
+   ```
+   Error: refusing to add "git+https://github.com/<org>/<repo>.git" as a Dolt remote — this URL matches the git origin.
+     Hint: use --allow-git-origin to proceed anyway (e.g. monorepo layout).
+   ```
+   This is NOT a failure and needs no flag. With no Dolt remote configured, `bd dolt push`
+   auto-configures `origin` from the git origin (`Configured Dolt remote origin from git origin.`)
+   and pushes in the same run. For the standard same-repo layout, skip `remote add` and go straight
+   to step 3. Use `--allow-git-origin` only for a genuinely different layout (e.g. monorepo).
 3. **Push.**
    ```bash
    bd dolt push
    ```
    If `bd dolt push` fails because the GitHub repo doesn't exist yet, stop and report it — that is the one real blocker.
+4. **Verify by the remote ref, not the message:** `git ls-remote origin | grep -i dolt` must show `refs/dolt/data` (plus `refs/heads/__dolt_remote_info__`), and `SELECT name, url FROM dolt_remotes;` on the board's database must list `origin`.
 
 Standalone precondition: a board must already exist (`.beads/` present). If it does not, run an init mode first — do not silently init as a side effect of `remote`.
 
@@ -160,9 +171,9 @@ The exact commands are in [Commands by mode](#commands-by-mode) above. Read [ref
 
 **Then add the Dolt remote for push/pull** (self-managed, uses the repo's own GitHub URL):
 ```bash
-bd dolt remote add origin git+https://github.com/<org>/<repo>.git
-bd dolt push
+bd dolt push   # bd ≥ 1.1.0: auto-configures origin from the git origin, then pushes
 ```
+On older bd, or for a URL that differs from the git origin, run `bd dolt remote add origin git+https://github.com/<org>/<repo>.git` first. bd ≥ 1.1.0 refuses `remote add` for a URL matching the git origin — see the `remote` mode steps above.
 
 The `git+https://` remote stores Dolt version history in the same GitHub repo as your code. This is self-managed and free.
 
