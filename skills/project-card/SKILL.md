@@ -101,9 +101,43 @@ Every card's AC MUST include: `All work via TDD (failing test first)`
 
 When EXECUTING a card, follow the TDD skill before writing any code. The card template defines WHAT to build; the TDD skill defines HOW to build it.
 
+## Completeness ACs Get an Executable Guard as the FIRST Deliverable
+
+An AC of the form "every X in the codebase does Y" (every consumer threads a value,
+no site uses a banned pattern, all strings read a central table) is a COMPLETENESS
+claim — and hand-built grep sweeps cannot prove one: every filter has holes, and each
+hole surfaces as another review round. (Provenance: vulcan terminology card,
+2026-08-15 — six review rounds, each FAIL a real defect a hand-grep missed,
+including one self-nullifying "clean" pass.)
+
+**The rule:** when a card carries a completeness AC, its `First failing test` IS an
+executable guard spec that scans the real tree and fails on violations, with a
+justified per-entry allowlist (the kind-seam-query-guard / terminology-guard
+pattern). Greps are for EXPLORATION while building the guard; the guard's green run
+is the AC's evidence — a grep transcript never is. Estimate the guard into the card.
+
 ## You Find It You Fix It
 
 When working a card, if you encounter ANY issue — test failure, lint warning, design system violation, broken dark mode — fix it in the same card. Do NOT call it "pre-existing" or card it for later. We own ALL the code.
+
+## The Files Section Is a Machine-Read Contract
+
+Where an AC-review generator derives the reviewed diff scope from the card's Files section,
+that section is parsed, not just read by humans — so **prose inside it is not free**. Any
+path-shaped token in an explanatory aside becomes a declared path, and the reviewer then
+reviews a diff nobody intended.
+
+- **One path per line, with its verb** (`Create:` / `Modify:` / `Delete:` / `Move:` / `Test:`).
+- **Every reason, amendment history and incident reference goes in card NOTES**, which the
+  reviewer receives in full anyway.
+- **A file you modified but did not declare** surfaces in the generator's out-of-scope list and
+  reads as undisclosed drift — which is the mechanism working, not a false alarm.
+- **Before spawning the reviewer, regenerate the artifact and read its scope line.** If the
+  path count does not match what you meant to declare, fix the card first.
+
+Provenance: a card whose scope amendments were written as parentheticals inflated from 9 real
+paths to 14 declared ones (2026-08-15), and a modified file that was never added to Files was
+correctly flagged as outside scope by the same generator.
 
 ## Design System Check
 
@@ -149,7 +183,7 @@ Every card's Anti-patterns section must include shortcuts that were considered a
 3. If ANY AC is unimplemented — do the work, then try again
 4. Run `/project-ac-verify <card-id>` — independent agent reviews all ACs against the diff and the referenced design doc section. The bd gate created at card start blocks `bd close` until this passes.
 
-**Why this exists:** In a prior incident, cards were closed with "deferred" ACs documented in notes. THAT BREAKS TRUST. Documenting what was skipped is transparent laziness — still laziness. The root cause was optimizing for card-close velocity instead of AC completeness. Speed is not a goal. Correctness is the only goal.
+**Why this exists:** `references/card-incidents.md#ac-completeness`.
 
 **Every card's Anti-patterns section MUST include:**
 - `- Do NOT close this card with any AC unchecked — no deferrals, no "lower priority" exceptions`
@@ -177,7 +211,7 @@ In **Anti-patterns**:
 - `- Do NOT change a response shape without updating the API schema in the same commit`
 - `- Do NOT close without live test output pasted in card notes`
 
-**Why this exists:** In a prior incident, a new field was added to two serializers (layers 1-3) but the API schema, contract tests, and live test (layers 4-7) were not done. The card was closed as "done." Rule: if you change one layer, you must update all downstream layers. LIVE TEST WITH REAL DATA.
+**Why this exists:** `references/card-incidents.md#response-shape`.
 
 ## No Linter Disables as Shortcuts — ALL Work
 
@@ -187,7 +221,7 @@ In **Anti-patterns**:
 **Every card's Before closing section MUST verify:**
 - `- [ ] Zero new linter disable comments in the diff`
 
-**Why this exists:** In a prior incident, a linter disable was added to bypass a validation-skipping warning. But the fields were already in the model's audit-exception list — the standard save path was the correct call with no warnings. The disable hid a failure to read the existing code.
+**Why this exists:** `references/card-incidents.md#linter-disable`.
 
 ## Cross-Layer Callback Validation — ALL Work That Touches save/update
 
@@ -198,7 +232,7 @@ In **Anti-patterns**:
 **And this in Anti-patterns:**
 - `- Do NOT assume a model callback is harmless — trace it through every controller action that triggers it`
 
-**Why this exists:** In a prior incident, a `before_save` callback silently undid what a controller action explicitly set. The endpoint cleared a timestamp field; the callback re-set it because a status field was in a terminal state. The user saw success but the database reverted. Tests missed it because they only tested one enum value out of five. This class of bug — ORM lifecycle hook fights controller — is invisible to single-layer tests and applies to any stack with lifecycle hooks (Rails callbacks, Django signals, Sequelize hooks).
+**Why this exists:** `references/card-incidents.md#callback-validation`.
 
 ## Source Verification — ALL Work
 

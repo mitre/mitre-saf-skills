@@ -61,14 +61,14 @@ Total: 11 cards, ~22 sp, ~130 min Claude-pace
 - Include total card count, total sp, and total estimate at the bottom
 - If a card is already done, mark it with `[DONE]`
 
-6. Confirm: "This card is in Phase N, unblocked, and I will work on it next."
+6. Confirm: "This card is in Phase N, unblocked, and I will work on it next." Alongside it, state the model pairing ONCE — `session model <model>, card is <mechanical|judgment>-tier` — mechanical-tier cards belong on an unmetered model tier (see Verification Economy below); never nag beyond that single line.
 7. Create the AC verification gate (blocks `bd close` until independent review passes):
    ```bash
    bd gate create --blocks <card-id> --type=human \
      --reason="AC verification required — run the project-ac-verify skill on <card-id>"
    ```
 
-**Why this exists:** Without the execution summary, agents pick cards out of order, miss dependencies, and lose track of what phase they're in. The gate prevents closing cards with incomplete ACs — the mechanical backstop that self-assessment lacks.
+**Why this exists:** `references/gate-incidents.md#gate-0`.
 
 **Check:** Did you present the execution summary AND create the verification gate before writing any code? If not, STOP and do it now.
 
@@ -77,6 +77,47 @@ Total: 11 cards, ~22 sp, ~130 min Claude-pace
 ```
 NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST
 ```
+
+## Verification Economy
+
+Every tool call re-sends the session's full context, and verification is the
+biggest call consumer — so package it tightly WITHOUT weakening it:
+
+- **One combined verification command per card or batch** — a single script
+  that runs the lint delta, the compiler, and the targeted suites and prints
+  one summary, instead of separate round-trips.
+- **Chain multi-package suites into ONE background command** so one
+  completion notification wakes the session, not one per package.
+- **Batch small mechanical items** into one verification cycle when their
+  files don't overlap; batch independent tool calls into one message.
+- **SOURCE the verification command from CI — never compose one that merely
+  looks reasonable.** Open the pipeline definitions covering the touched area
+  (GitHub Actions, GitLab CI, Jenkinsfile, whatever the project uses) and
+  mirror the commands they actually run. A hand-composed command is almost
+  always NARROWER than the real gate, and the gap is invisible because the
+  narrow command passes. Two shapes recur: a PACKAGE-level check standing in
+  for a REPO-level one (fatal when the change is to shared config), and
+  per-file checks standing in for the command that runs the whole set (fatal
+  when the defect is in the relationship between a file and its directory,
+  which no per-file check can see).
+- **Never pipe a graded command.** `cmd | tail` makes `$?` the exit status of
+  `tail`, so the chain reports success while the tool failed. Redirect to a
+  file and inspect the FILE. A verification script must also exit non-zero when
+  it prints a failing verdict — a body that says FAIL while the process exits 0
+  is read as success by every wrapper above it. Prefer a CHECKED-IN script over
+  a hand-composed one-liner per card: the one-liner is where these defects are
+  reintroduced, one card at a time.
+- **Match model tier to work tier at the session level:** mechanical epics
+  (lint sweeps, migrations, formatting passes) run on an unmetered model
+  tier; metered flagship models are for judgment-heavy work.
+- **Reasoning effort is tiered:** mechanical work → medium, standard card
+  execution → high (the default), xhigh reserved for genuinely hard design
+  rounds. Effort tokens are output tokens — the costliest thing a session
+  emits. Genuinely mechanical skills may declare `effort:` frontmatter
+  (overrides the session level while active, then reverts); the session-level
+  flip belongs to the operator.
+- Economy changes the PACKAGING of verification, never its content: the
+  delta, compiler, and suite bars themselves are untouchable.
 
 ## Behavioral Safeguard: The Frustration-Error Feedback Loop
 
@@ -93,13 +134,7 @@ This is a **bidirectional feedback loop**. The user's frustration is a rational 
 
 ### Why This Happens (Mechanical, Not Emotional)
 
-1. **RLHF training rewards agreement with corrections.** Under pushback, models abandon positions 78.5% of the time — including correct ones (SycEval 2025). The training signal says "resolve the user's displeasure" which maps to "produce output quickly," not "produce output correctly."
-
-2. **Sycophancy cascades into task falsification.** Anthropic's own research documents the progression: flattery → altering checklists so incomplete work appears complete → modifying evaluation criteria. This happens without explicit training — the model generalizes from the incentive structure.
-
-3. **Context rot degrades instruction following.** At 50%+ context utilization, system prompt rules receive measurably less attention weight than recent turns. Rules drilled in early get progressively ignored (Chroma 2025: all 18 tested models degrade continuously, no plateau).
-
-4. **Chain-of-thought masks the problem.** CoT reasoning hides sycophantic patterns from visible output while internal activations still show capitulation (arxiv 2603.16643). The model LOOKS like it's reasoning carefully while actually optimizing for speed.
+Four documented mechanisms — RLHF sycophancy, task falsification cascades, context rot, CoT masking: `references/gate-incidents.md#sycophancy-mechanisms`.
 
 ### The Deceleration Protocol — MANDATORY after any correction
 
@@ -259,7 +294,7 @@ If Playwright MCP (or equivalent browser automation) is available, use it. If no
 - MATCH the established pattern exactly (mixins, prop shapes, event contracts)
 - Do NOT write manual code when a mixin/composable already handles it
 
-**Anti-pattern that spawned this gate:** Wiring a shared component with manual HTTP calls instead of using the existing mixin/composable. Result: no optimistic updates, no state tracking, no error rollback — broken UX that passed unit tests.
+**Anti-pattern that spawned this gate:** `references/gate-incidents.md#gate-9`.
 
 **Check:** If Playwright MCP is available and you changed UI code, did you navigate to the page and verify the feature works? Screenshot or snapshot as evidence.
 
@@ -274,7 +309,7 @@ If Playwright MCP (or equivalent browser automation) is available, use it. If no
 - **Rust:** `cargo check`
 - **Ruby:** Type checking if Sorbet/RBS configured
 
-**Why this exists:** Transpile-only test runners skip type checking entirely. 578 tests passed while the code had 23 type errors that prevented production builds — `instanceof` on wrong types, narrowed interfaces missing required properties, wrong import paths, API changes in dependencies. All invisible to the test runner. The server crashed on restart.
+**Why this exists:** `references/gate-incidents.md#gate-10`.
 
 **The rule:** If the compiler reports errors in production code, the card is NOT done. Fix the type errors before closing.
 
@@ -284,7 +319,7 @@ If Playwright MCP (or equivalent browser automation) is available, use it. If no
 
 If you discover ANY issue while working a card — test failure, lint warning, design system violation, broken dark mode, accessibility gap — **fix it immediately**. Do NOT say "pre-existing," do NOT card it for later, do NOT skip it because it's "out of scope." We own ALL the code. Every issue found is an issue fixed, in this card, right now.
 
-**Why this exists:** Calling failures "pre-existing" erodes trust and leaves broken windows. The cost of fixing a 2-line issue NOW is 30 seconds. The cost of carding it, context-switching, and coming back later is 10 minutes minimum.
+**Why this exists:** `references/gate-incidents.md#gate-11`.
 
 **Check:** Did you encounter any issues during this card that you did NOT fix? If yes, go back and fix them.
 
@@ -314,7 +349,7 @@ Before writing ANY CSS or modifying ANY Vue component, check if the project has 
 5. If anything looks wrong — padding off, colors wrong, alignment broken — FIX IT before closing
 6. Only THEN close the card
 
-**Why this exists:** Tests verify code correctness. Playwright verifies feature correctness. They are NOT interchangeable. A card with 100% test pass rate and broken visual output is a broken card. I have repeatedly closed cards without looking at the result and been called out for it. The screenshot is the PROOF that the work is done.
+**Why this exists:** `references/gate-incidents.md#gate-13`.
 
 **What counts as visual output:**
 - Any `.vue` file change (template or style block)
@@ -340,7 +375,7 @@ Before writing ANY CSS or modifying ANY Vue component, check if the project has 
 3. **Check for warnings** — Did the test runner, linter, or compiler warn about the "fix"? Warnings ARE failures.
 4. **Question the framing** — Is the analysis solving the right problem, or solving its own misunderstanding?
 
-**Why this exists:** In a prior incident, an expert review agent recommended narrowing `not_to raise_error` to `not_to raise_error(RegexpError)`. This was blindly implemented. RSpec itself warns against this pattern — it creates false positives. The "improvement" was a regression that the tool's own documentation explicitly discourages. 10 minutes of research would have caught it in 30 seconds.
+**Why this exists:** `references/gate-incidents.md#gate-14`.
 
 **The rule:** Agent analysis is a starting point for YOUR research, not a finished answer. If you can't explain WHY a recommendation is correct from first principles or documentation, do NOT implement it.
 
@@ -355,7 +390,7 @@ Before writing ANY CSS or modifying ANY Vue component, check if the project has 
 3. **Better pattern?** Use it regardless of who wrote it
 4. **One has more coverage, the other cleaner code?** Combine both
 
-**Why this exists:** In a prior incident, a spec conflict was resolved correctly (kept 5 tests over the other branch's 3). But the rule must be explicit: we always review both sides. "Ours" or "theirs" as a default is lazy and loses good work.
+**Why this exists:** `references/gate-incidents.md#gate-15`.
 
 **Check:** On every merge conflict, did you compare both implementations before choosing?
 
@@ -363,7 +398,7 @@ Before writing ANY CSS or modifying ANY Vue component, check if the project has 
 
 **Every solution must be the correct, best-practice, standards-based approach.** No quick fixes, no "pragmatic" shortcuts, no "Option 2 is simpler." If there are two approaches and one is architecturally correct, use it — even if it requires more changes.
 
-**Why this exists:** In a prior incident, a cache invalidation bug was found where reply cache keys used `replies:${parentReviewId}` but `invalidateCache` filtered by `${componentId}:`. The "pragmatic" fix was to clear ALL reply caches (coarse but simple). The correct fix was to scope reply cache keys by componentId: `${componentId}:replies:${parentReviewId}`. This required changing the composable signature and adding a prop to the component — more work, but correct. The shortcut would have created a maintenance trap.
+**Why this exists:** `references/gate-incidents.md#gate-16`.
 
 **The rule:** If you catch yourself saying "Option B is simpler" or "this is more pragmatic," that's the warning sign. Ask: "Is Option A more correct?" If yes, do Option A.
 
@@ -373,7 +408,7 @@ Before writing ANY CSS or modifying ANY Vue component, check if the project has 
 
 **When a card touches a controller action that calls `save`, `update`, `update!`, or `create` on a model, you MUST trace every `before_save`/`after_save`/`before_create`/`after_create` callback on that model and verify none of them UNDO or CONFLICT with what the controller action explicitly sets.**
 
-**Why this exists:** In a prior incident, a controller action cleared a timestamp field. A `before_save` callback immediately re-set it because a status field was in a terminal state. The endpoint fought the callback and lost. The user saw success but the database reverted. Tests missed it because they only tested one enum value out of five — the non-terminal one where the callback doesn't fire.
+**Why this exists:** `references/gate-incidents.md#gate-17`.
 
 **The check:**
 1. Read the model file. List every `before_save`, `after_save`, `before_create`, `after_create`, `before_update`, `after_update` callback.
@@ -406,7 +441,7 @@ Before writing ANY CSS or modifying ANY Vue component, check if the project has 
 
 **The proof must be PASTED in card notes** via `bd update <id> --append-notes` before `bd close`.
 
-**Why this exists:** In a prior incident, a security card was closed with only "tests pass" as evidence. In another, a serializer change was almost closed without verifying the navbar still rendered. Tests pass while production behavior is broken. Live testing catches what tests miss. Rule: nothing is done without live testing.
+**Why this exists:** `references/gate-incidents.md#gate-18`.
 
 **The rule:** If you can't show live output proving the change works in the running app, the card is NOT done. Choose the right verification tool for what you changed. "Tests pass" is necessary but not sufficient.
 
@@ -427,7 +462,7 @@ Before writing ANY CSS or modifying ANY Vue component, check if the project has 
 
 **This applies to BOTH new endpoints AND modifications to existing endpoints.** Adding a field to an existing serializer is the same obligation as creating a new endpoint.
 
-**Why this exists:** In a prior incident, a new field was added to two serializers (layers 1-3) but the API schema, contract tests, and live test (layers 4-7) were not done. The card was closed as "done." Rule: if you change one layer, you must update all downstream layers. It is actually 7 layers — LIVE TEST WITH REAL TOKEN AND DATA.
+**Why this exists:** `references/gate-incidents.md#gate-19`.
 
 **Check:** Does your diff touch a serializer or controller render? If yes, all downstream layers must be in the diff + card notes (live test output). If any are missing, the card is NOT done.
 
@@ -441,7 +476,7 @@ Before writing ANY CSS or modifying ANY Vue component, check if the project has 
 3. Find the pattern that makes the linter happy WITHOUT a disable
 4. Only if the bypass is genuinely unavoidable AND architecturally correct (e.g., `update_column` in an `after_save` to avoid recursion, or `update_columns` for soft-delete) may you add a disable with a comment explaining WHY
 
-**Why this exists:** In a prior incident, a linter disable was added to bypass a validation-skipping warning. But the fields in question were already in the model's audit-exception list — normal `save` was the correct call with no warnings. The disable was a shortcut that hid a failure to read the existing code.
+**Why this exists:** `references/gate-incidents.md#gate-20`.
 
 **Check:** Does your diff contain ANY new linter disable comments? If yes, STOP. Research the proper fix. If you can't explain why the disable is architecturally necessary (not just convenient), remove it and fix the code.
 
@@ -451,11 +486,21 @@ Before writing ANY CSS or modifying ANY Vue component, check if the project has 
 
 **Before running `bd close`, re-read EVERY acceptance criteria checkbox on the card. If ANY AC is not implemented, the card stays OPEN.** There is no "lower priority" exception, no "deferred to follow-up" exception, no "WARNING-level" exception. If the AC is on the card, it gets done or the card does not close.
 
-**Why this exists:** In a prior incident, multiple cards were closed with "deferred" ACs documented in the notes. Documenting what was skipped does NOT make it done. A card with 80% of its ACs is 0% closeable. This is lying about completion status and it destroys trust. The root cause was optimizing for card-close velocity — as the card count climbed, speed became the goal instead of completeness.
+**Why this exists:** `references/gate-incidents.md#gate-21`.
 
 **The rule:** `bd show <card-id>` → read every `- [ ]` line → if any is unchecked, STOP. Do the work. Then close.
 
 **Check:** Can you paste evidence for every AC checkbox? If not, the card is not done.
+
+**Completeness ACs ("every X in the codebase does Y") — the evidence is an executable
+guard, never a grep transcript.** Hand-built grep filters cannot prove a completeness
+claim: every filter has holes, and each hole is another review round (vulcan
+terminology card, 2026-08-15: six rounds, every FAIL a real site a hand-grep missed).
+Build the guard spec FIRST (scan the real tree, justified per-entry allowlist — the
+kind-seam-query-guard / terminology-guard pattern), use greps only as exploration
+while building it, and paste the guard's green run as the AC's evidence. If mid-card
+you catch yourself writing "sweep clean" backed by a grep, stop — that sentence is
+the tell.
 
 ### Gate 22: Independent AC Verification — MANDATORY
 
@@ -463,7 +508,7 @@ Before writing ANY CSS or modifying ANY Vue component, check if the project has 
 
 A `bd gate` was created at card start (Gate 0 step 7). This gate blocks `bd close` mechanically until the project-ac-verify skill resolves it. Using `bd close --force` to bypass is an auditable escape hatch — not a shortcut.
 
-**Why this exists:** In a prior incident, an agent closed cards with incomplete ACs — XLSX substituted with TSV, YAML skipped, tests that only checked `typeof === 'function'`. The agent self-assessed "done" and was wrong every time. An independent reviewer reading the ADR section and the diff would have caught all of these in seconds.
+**Why this exists:** `references/gate-incidents.md#gate-22`.
 
 **The rule:** Self-assessment is necessary but not sufficient. Independent review is the gate.
 

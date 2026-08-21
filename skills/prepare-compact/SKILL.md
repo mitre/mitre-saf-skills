@@ -159,6 +159,13 @@ bd remember --global "<insight that applies everywhere>" --key "<descriptive-key
 
 **When to use project-local (no flag):** Decisions specific to this codebase. Examples: "Use Drizzle not Prisma," "Clean scaffold not incremental compat."
 
+**UPDATE-over-ADD:** every memory is injected by `bd prime` into EVERY future
+session — a permanent per-request context tax. Before creating a new key,
+search for an existing one to UPDATE (`bd remember --key <existing> "merged
+content"`) or supersede. When a memory is superseded, fold the survivor in and
+`bd forget` the stale one — never stack corrections as new entries. A fact
+that only matters to one card belongs in that card's notes, not here.
+
 Format: `"[Decision]: [rationale]. [What was rejected and why]."` Keep under 280 chars.
 
 ## Step 6: Sync Beads to Remote & Local Backup

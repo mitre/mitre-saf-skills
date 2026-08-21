@@ -207,6 +207,24 @@ Key authoring rules:
 - Explain WHY — reasoning works better than rigid MUSTs
 - Principle-first — state the universal rule, then give stack-specific examples
 
+**Token economy (a SKILL.md is a per-invocation context tax — every byte is
+re-sent with every tool call for the rest of the session):**
+- **Operative text only in SKILL.md.** Rules, steps, checks stay; incident
+  histories, research citations, and "why this exists" war stories move to
+  `references/` (e.g. a `gate-incidents.md`), each replaced by a one-line
+  anchor pointer. The rule teaches; the story justifies — only the rule needs
+  to ride every call.
+- **Keep the WHY as one sentence** where it changes behavior; link the full
+  narrative. Deleting rationale entirely makes rules brittle — moving it makes
+  them cheap.
+- **Declare `effort:` frontmatter on genuinely mechanical skills** (ceremony,
+  formatting, state save/restore). It overrides the session's reasoning-effort
+  level while the skill is active, then reverts — reasoning tokens are output
+  tokens, the costliest a session emits. Never declare it on judgment-heavy
+  skills.
+- **Description economy:** the `description` is loaded for EVERY session that
+  lists the skill — triggers and scope only, no essays.
+
 ### 2c: Directory structure
 
 ```
@@ -281,6 +299,16 @@ For any remaining grep-based checks, **classify each hit by context before repor
 - [ ] `grep -rni 'Aaron\|specific-person-name' .` — zero person names in content (exclude checklist examples showing what to avoid)
 - [ ] `grep -rn 'On 2026-' .` — zero dated incidents in content (exclude checklist examples)
 - [ ] `grep -ci 'comprehensive\|robust\|enterprise-grade' .` — zero marketing words in content (exclude checklist examples)
+
+**Token economy (audit like a cost engineer — SKILL.md rides every tool call):**
+- [ ] `grep -c 'Why this exists' SKILL.md` — narrative blocks are one-line
+      pointers into `references/`, not inline war stories
+- [ ] Research citations / incident histories live in `references/`, loaded
+      on demand, never inline in SKILL.md
+- [ ] Genuinely mechanical skill? → `effort:` frontmatter declared. Judgment
+      skill? → no effort override
+- [ ] No content duplicated between SKILL.md and a `references/` file (the
+      pointer replaces the text, it never accompanies it)
 
 **Security:**
 - [ ] `grep -rni 'api_key\|token\|password' scripts/` — verify env var usage, not hardcoded values
