@@ -70,6 +70,27 @@ Push only on the owner's word (nothing pushed). Never `git add -A`. `rm` and `gi
 are blocked. Commits use `Authored by: Aaron Lippold<lippold@gmail.com>`, no AI attribution.
 `derive-cci-mappings` is not shared and is not to be added to this repo.
 
+## Update — 2026-08-21
+
+`97y.12` "Push development to origin — the epic's only outward-facing action": ITS WORK IS
+DONE and the card is ready to close, pending the owner's verification. `development` was
+pushed to origin on 2026-08-21 with his explicit authorization, as a new remote branch with
+tracking set. The card was deliberately NOT closed — closing a card is the owner's, and this
+session did not work it.
+
+Also landed and pushed on `development` this session:
+
+- Six commits: beads bookkeeping, the unaudited-budget raise to 10 with its boundary test,
+  the incident-log extraction to `references/`, the schema-migration reference (which fixed a
+  dangling link in shipped guidance), the process-research docs, and this file.
+- `hooks/ac-review-prompt.sh` had been diverged for NINE DAYS: the installed copy carried a
+  brace fix from 08-12 that never reached this repo, which `.chezmoiignore` names as its
+  owner. Synced, committed, pushed; both copies now identical; hook tests 11/11.
+- `97y.13` filed — extend `compare-skill-copies.sh` to cover hooks, then symlink them. The
+  existing guard covers skills ONLY, which is why the nine days passed unnoticed.
+
+The "nothing pushed" note under Standing constraints describes 2026-08-12 and no longer holds.
+
 ## What to do next
 
 1. Read `docs/plan-skill-reconciliation.md`.
