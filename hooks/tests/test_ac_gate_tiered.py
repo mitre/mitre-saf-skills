@@ -24,6 +24,25 @@ HOOKS_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 HOOK = os.path.join(HOOKS_DIR, "ac-gate-tiered.sh")
 
+
+def unaudited_budget():
+    """Read the budget out of the hook instead of hardcoding it.
+
+    These cases previously seeded a literal 5 entries, so raising
+    UNAUDITED_BUDGET turned case 4 red for no reason but the constant moving
+    (2026-08-15, 5 -> 10). The BEHAVIOUR under test is "deny at the budget,
+    do not deny below it"; the number itself is configuration, so the test
+    reads it rather than restating it.
+    """
+    with open(HOOK) as fh:
+        for line in fh:
+            if line.startswith("UNAUDITED_BUDGET="):
+                return int(line.split("=", 1)[1].split("#", 1)[0].strip())
+    raise AssertionError("UNAUDITED_BUDGET not found in the hook")
+
+
+BUDGET = unaudited_budget()
+
 GATE_DESC = """○ {gid} · Gate: human   [P2 · OPEN]
 Type: gate
 Reason: AC verification required — run /project-ac-verify {card}
@@ -122,8 +141,8 @@ def _(state):
 def _(state):
     key = ledger_key(state)
     with open(os.path.join(state, f"ledger-{key}.log"), "w") as fh:
-        for i in range(5):
-            fh.write(f"2026-08-10T1{i}:00:00Z gate=g{i} card=OLD-CARD-{i}\n")
+        for i in range(BUDGET):
+            fh.write(f"2026-08-10T{i:02d}:00:00Z gate=g{i} card=OLD-CARD-{i}\n")
     got, why = run(bash("bd gate resolve GATE-1"), state)
     assert got == "DENY", f"got {got}"
     assert "credit" in why.lower(), f"expected the credit tier, got: {why[:160]}"
@@ -131,14 +150,27 @@ def _(state):
     assert "OLD-CARD-0" in why, "the denial must list what is outstanding"
 
 
+@case("4b. ONE BELOW the budget is not spent — pins the boundary, not just one point")
+def _(state):
+    key = ledger_key(state)
+    with open(os.path.join(state, f"ledger-{key}.log"), "w") as fh:
+        for i in range(BUDGET - 1):
+            fh.write(f"2026-08-10T{i:02d}:00:00Z gate=g{i} card=OLD-CARD-{i}\n")
+    got, why = run(bash("bd gate resolve GATE-1"), state)
+    # Must get PAST the credit tier and stop at the evidence check instead —
+    # without this, a budget of 0 or an always-deny bug would still pass case 4.
+    assert "credit" not in why.lower(), \
+        f"below budget must not block on credit; got: {why[:160]}"
+
+
 @case("5. audited credit is NOT spent — the day-2 regression, end to end")
 def _(state):
     key = ledger_key(state)
     with open(os.path.join(state, f"ledger-{key}.log"), "w") as fh:
-        for i in range(5):
-            fh.write(f"2026-08-10T1{i}:00:00Z gate=g{i} card=OLD-CARD-{i}\n")
+        for i in range(BUDGET):
+            fh.write(f"2026-08-10T{i:02d}:00:00Z gate=g{i} card=OLD-CARD-{i}\n")
     with open(os.path.join(state, f"watermark-{key}.txt"), "w") as fh:
-        fh.write("2026-08-10T23:59:59Z count=5\n")
+        fh.write(f"2026-08-10T23:59:59Z count={BUDGET}\n")
     got, why = run(bash("bd gate resolve GATE-1"), state)
     # It must get PAST the credit tier. With no verdict artifact seeded it then
     # stops at the evidence check — which is proof it was not blocked on credit.

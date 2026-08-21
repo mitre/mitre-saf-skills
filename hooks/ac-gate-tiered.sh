@@ -60,7 +60,7 @@
 
 set -uo pipefail
 
-UNAUDITED_BUDGET=5 # Aaron, 2026-08-10: self-resolutions outstanding before he must audit
+UNAUDITED_BUDGET=10 # Aaron, 2026-08-15: raised from 5 — self-resolutions outstanding before he must audit
 FLAP_LIMIT=2       # recorded FAIL verdicts on a card before it needs his eyes
 
 # AC_REVIEW_STATE_DIR exists so the behavioral tests can run against a scratch
