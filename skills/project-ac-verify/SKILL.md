@@ -1,6 +1,6 @@
 ---
 name: project-ac-verify
-description: Independent review of card acceptance criteria before close. REQUIRED before every bd close. Creates a bd gate on card start, resolves it only when all ACs pass independent review against the code diff AND the referenced design doc section.
+description: Independent review of card acceptance criteria. REQUIRED before proposing a commit and before every bd close. Creates a bd gate on card start, resolves it only when all ACs pass independent review against the code diff AND the referenced design doc section. When the review finds problems whose remedy rivals the card in size, stop and let the human decide.
 compatibility: Requires beads CLI (bd)
 license: Apache-2.0
 ---
@@ -14,8 +14,49 @@ This skill exists because in a prior incident, cards were closed with incomplete
 ## When to Use
 
 - **MANDATORY before every `bd close`** — no exceptions
+- **MANDATORY before proposing a commit** — see below
 - Invoked automatically by project-tdd and project-card workflows
 - Can be invoked standalone: `/project-ac-verify <card-id>`
+
+## Run the review before proposing a commit, not after
+
+The review comes back clean **before** you offer the human a commit. Not after
+the commit lands, not while CI runs, not "I'll verify once it's approved."
+
+This is easy to get wrong because the gate blocks `bd close`, and `bd close`
+happens late — so the mechanical enforcement sits at the end while the natural
+urge to commit sits in the middle. Nothing stops you committing unverified work.
+That is the gap this section closes.
+
+The reason is not ceremony. A commit is an assertion that the work is right, and
+self-review is exactly what misses the defect class this skill exists to catch —
+an author who has just written something verifies what they intended, not what
+they typed. Observed failures from skipping it: a documented Go example naming a
+struct field that does not exist, an import path wrong by one directory level in
+the very page teaching that import, and a count of files confidently recorded
+for a category containing none of them. Each survived the author's own check and
+each was found in minutes by an independent reviewer.
+
+**If the review comes back clean:** resolve the gate, then propose the commit.
+
+**If the review finds problems, the size of the remedy decides what happens:**
+
+- **Small — fix, re-review, then propose the commit.** A wrong symbol name, a
+  stale path, a missing assertion. Do not offer a commit carrying a known
+  finding, and do not offer one "with the fix to follow."
+
+- **Large — STOP and tell the human.** When the remedy approaches the size of
+  the original card — an AC that was never really implemented, a test that does
+  not test what it claims, a design decision that has to be revisited — do not
+  quietly start a second implementation under the banner of a fix. Report what
+  the review found, say plainly that the remaining work rivals the card itself,
+  and let the human decide. They may well tell you to commit what exists first,
+  purely to save state before a large change; that is their call to make, and
+  committing to checkpoint on their instruction is legitimate. Taking that
+  decision yourself is not.
+
+The judgement call is only about *size*, never about whether to report. Every
+finding gets surfaced.
 
 ## The Gate Lifecycle
 
@@ -254,7 +295,8 @@ Integrated as the final gate in project-tdd:
 ```
 ### Gate 22: Independent AC Verification — MANDATORY
 
-Before running `bd close`, invoke /project-ac-verify <card-id>.
+Before proposing a commit, and before running `bd close`, invoke
+/project-ac-verify <card-id>.
 
 The skill conducts an independent review that checks every AC against 
 the code diff and the referenced design document section. The agent has 
