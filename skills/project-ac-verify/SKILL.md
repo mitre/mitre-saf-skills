@@ -58,6 +58,22 @@ each was found in minutes by an independent reviewer.
 The judgement call is only about *size*, never about whether to report. Every
 finding gets surfaced.
 
+### When a card carries a CI-dependent AC
+
+Some older cards have an AC like "CI green on the branch" or "the PR merges".
+Those cannot be verified before a commit exists, so taken literally they make
+this review impossible to complete in the right order.
+
+Do not treat such an AC as blocking, and do not push-and-wait to satisfy it.
+Verify the property it was reaching for — the tests pass locally in every
+affected module, lint is clean, the build works from a clean checkout — and
+record the AC as a **card defect**: it states a gate rather than a property, and
+CI enforces itself without a checkbox. `project-card` has the rule and the
+rewrites.
+
+This matters because an unsatisfiable AC quietly teaches the wrong order: the
+only way to tick it is to commit first and review after.
+
 ## The Gate Lifecycle
 
 ### 1. Gate Creation (at card start — done by project-tdd Gate 0)
