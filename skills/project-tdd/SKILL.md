@@ -366,13 +366,22 @@ Before writing ANY CSS or modifying ANY Vue component, check if the project has 
 
 ### Gate 22: Independent AC Verification — MANDATORY
 
-**Before running `bd close`, invoke the project-ac-verify skill on `<card-id>`.** This conducts an independent review that checks every AC against the code diff AND the referenced design document section. The reviewer has no investment in closing the card — its only job is verification.
+**Before proposing a commit, and again before running `bd close`, invoke the project-ac-verify skill on `<card-id>`.** This conducts an independent review that checks every AC against the code diff AND the referenced design document section. The reviewer has no investment in closing the card — its only job is verification.
 
 A `bd gate` was created at card start (Gate 0 step 7). This gate blocks `bd close` mechanically until the project-ac-verify skill resolves it. Using `bd close --force` to bypass is an auditable escape hatch — not a shortcut.
 
 **Why this exists:** In a prior incident, an agent closed cards with incomplete ACs — XLSX substituted with TSV, YAML skipped, tests that only checked `typeof === 'function'`. The agent self-assessed "done" and was wrong every time. An independent reviewer reading the ADR section and the diff would have caught all of these in seconds.
 
 **The rule:** Self-assessment is necessary but not sufficient. Independent review is the gate.
+
+**Ordering:** the review comes back clean *before* you offer the human a commit —
+not after it lands, not while CI runs. The `bd gate` only blocks `bd close`,
+which happens later, so nothing mechanically stops an unverified commit; that is
+why this is stated rather than enforced. If the review finds something small, fix
+it, re-review, then propose the commit. If the remedy approaches the size of the
+original card, STOP and tell the human what the review found rather than starting
+a second implementation — they may direct you to commit first purely to save
+state, which is their call to make.
 
 **What the reviewer checks:**
 - Every AC against specific evidence in the diff (line numbers, test names)

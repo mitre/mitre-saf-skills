@@ -117,7 +117,7 @@ Each database needs its own git remote URL. Multiple databases cannot share one 
 
 ### `global_project_id` is nil UUID
 
-As of bd v1.0.5 (pre-release), `global_project_id` in metadata.json may show `00000000-0000-0000-0000-000000000000`. This is cosmetic — the global registration feature is not fully implemented yet. The local board works correctly.
+`global_project_id` in metadata.json may show `00000000-0000-0000-0000-000000000000`. This is cosmetic: global registration is not wired up, and the local board works correctly. Last observed on bd 1.0.5; if your `bd --version` is newer, confirm it still holds before treating it as expected.
 
 ### "No Dolt remote configured" warning
 

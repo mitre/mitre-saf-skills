@@ -53,6 +53,7 @@ Skills for test-driven development, documentation, and code quality.
 | **[spec-split-review](skills/spec-split-review/)** | Split large RSpec files into domain-focused files with expert review for grouping quality, test gap analysis, and parallel safety. Use when any spec file exceeds 500 lines. |
 | **[package-audit](skills/package-audit/)** | Run a systematic audit of a package's source code across four domains: DRY/maintainability, architecture, test quality, and security. |
 | **[create-feature-plan-adr](skills/create-feature-plan-adr/)** | Drive the design phase before code. Produces an ADR (WHY) and feature plan (HOW) that feed into project-card for epic/card creation. Phase 0 reads the codebase first, Decision Gate routes based on existing work. |
+| **[research](skills/research/)** | Freeform topic research with a fetch-before-cite contract — every cited source is a URL actually retrieved in-session, so no hallucinated or non-resolving links. Lightweight everyday counterpart to a deep-research harness. |
 
 ### Project Management (requires [beads](https://github.com/gastownhall/beads))
 
