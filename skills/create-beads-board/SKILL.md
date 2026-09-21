@@ -40,7 +40,15 @@ Default to **local** if the user doesn't have a preference — it works without 
 ## Prerequisites
 
 **All modes:**
-- beads CLI: `brew install beads` (or `go install github.com/steveyegge/beads/cmd/bd@latest`)
+- beads CLI: use whatever `bd` is on the machine (`bd --version`). Install with
+  `brew install beads`, or `go install github.com/gastownhall/beads/cmd/bd@latest`
+  (the project moved from `steveyegge/beads`; that path still redirects).
+
+  These skills pin no `bd` version. `bd prime` ships with the CLI and is the
+  current reference for its commands, so prefer it over anything written here
+  when the two disagree. Check for an update occasionally (`brew outdated beads`)
+  and read the release notes before taking one: a release that changes the Dolt
+  schema has to be taken by every clone of a shared board at the same time.
 
 **Shared/remote modes additionally:**
 - A running Dolt SQL server (verify: `dolt --host <host> --port <port> --user root --password "" --no-tls sql -q "SHOW DATABASES;"`)
