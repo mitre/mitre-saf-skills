@@ -80,11 +80,35 @@ Based on Michael Nygard's lightweight ADR format, extended with an implementatio
 - [How to verify the feature end-to-end]
 - [Edge cases to test]
 - [Performance/security considerations]
+
+## First Implementation Step
+
+**Before any code is written, decompose this ADR into a tracked series of steps.**
+The Implementation Plan above is the input to that decomposition, not a substitute
+for it — it has no work items, nothing is assignable or reservable, its phase
+ordering is prose rather than real dependency edges, and nobody else can see what
+is in flight.
+
+Create the work items in whatever tracker this repository actually uses — a GitHub
+project, a Jira epic, a beads board, or something else. Determine which by reading
+the repository's own context first: `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`,
+`.beads/`, issue templates under `.github/`, and any tracker referenced in recent
+commits or PR descriptions. Do not assume; check.
+
+Then, in the tracker: one parent item for this ADR, one child per phase, with the
+dependency edges the Phases section describes, and the per-phase acceptance
+criteria carried across verbatim. Use the project-card skill for the shape of the tracker items.
+
+- [ ] Tracker identified (name it here: __________)
+- [ ] Parent item created for this ADR
+- [ ] One child item per phase, with dependencies linked
+- [ ] Phase acceptance criteria carried into the child items
 ```
 
 ## Usage Notes
 
 - The **Context** and **Decision** sections are for humans reading the ADR months or years later — they need to understand WHY without context from Slack or meetings.
-- The **Implementation Plan** section is for the project-card skill — it reads this to create the epic and child cards. Make phases specific enough to be individual cards.
+- The **Implementation Plan** section is for whatever creates the work items — the project-card skill, or a human filing issues. Make phases specific enough to be individual cards.
+- The **First Implementation Step** section is deliberately the last thing in the document, because it is the first thing to act on. A well-specified plan reads like a card set and tempts a reader straight into code; this section is what stops that, so keep it in even when the plan looks complete enough to work from directly.
 - ADRs are **immutable** once accepted. To change a decision, create a new ADR with status "supersedes ADR-NNNN."
 - Number ADRs sequentially. Check `ls docs/adrs/` for the next available number.

@@ -169,6 +169,7 @@ Read [references/adr-template.md](references/adr-template.md) for the full templ
 5. **Quality Standards** — established ONCE here, inherited by EVERY card (see below)
 6. **Shared Abstractions** — what's common across phases, built first (DRY from design)
 7. **Phases** — ordered by dependency, with files, ACs, verification per phase
+8. **First Implementation Step** — the ADR's last section, and REQUIRED: decompose this ADR into tracked work items before any code. See Phase 4.
 
 ### Quality Standards (baked into the plan, inherited by every card)
 
@@ -241,8 +242,12 @@ Show the draft to the user: "Here's the ADR. What's missing or wrong?"
 
 1. Confirm the ADR status is "proposed" (becomes "accepted" after team review)
 2. **Commit the ADR on the feature/fix branch that will carry the work — NOT a separate docs branch.** The ADR and the implementation it plans belong on the same branch and in the same PR. Create or switch to the `feat/<name>` (or `fix/<name>`) branch the work will land on and commit the ADR there as that PR's first commit. Do **not** open a standalone `docs/<name>` branch for the ADR first: that splits the decision from its implementation across two PRs and forces a later branch rename or rebase. If the branch doesn't exist yet, create it now with the feature/fix name (not a docs-only name).
-3. Save the file
-4. Ask: "Ready to create cards from this plan? Invoke the project-card skill to create the epic and cards from the Implementation Plan section."
+3. **Write the ADR's closing `## First Implementation Step` section** (see the template). Every ADR ends with it, and it is not boilerplate — it is the instruction that stops the next reader treating the Implementation Plan as if it were already a set of work items.
+
+   Name the tracker explicitly in that section rather than leaving it generic. Determine which one the repository uses by reading its own context — `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, a `.beads/` directory, issue templates under `.github/`, or a tracker referenced in recent commits and PR descriptions. Do not assume beads; do not assume GitHub Issues. Check, then write down what you found.
+
+4. Save the file
+5. Ask: "Ready to create the work items from this plan?" — then create them in the tracker identified above. If the repo uses beads, invoke the project-card skill to create the epic and cards from the Implementation Plan section. Whatever the tracker, the items come before the code.
 
 ## Gotchas
 
@@ -250,6 +255,7 @@ Show the draft to the user: "Here's the ADR. What's missing or wrong?"
 - The implementation plan must be specific enough for the project-card skill to create testable cards. "Implement the feature" is not a plan. "Phase 1: add the model migration + factory + request spec" is.
 - ADRs are immutable once accepted. If a decision changes, create a new ADR that supersedes the old one — don't edit the original.
 - The "do nothing" alternative is always valid. If the problem isn't worth solving, the ADR should say so.
+- **A rich Implementation Plan is the single biggest cause of skipped work tracking.** A plan carrying phases, story points, file lists and acceptance criteria reads like a finished card set, so the next agent — or the same one, next session — goes straight from reading the ADR to writing code and never files anything. Nothing is then reservable, no dependency edges exist, no close gate applies, and a second agent cannot see what is in flight. This has happened. The closing `## First Implementation Step` section exists precisely to interrupt it, which is why it is required even when the plan looks complete enough to work from directly.
 - Don't stage the ADR on a throwaway `docs/` branch. It lives on the `feat/`|`fix/` branch that will carry the implementation, so the decision and the code ship together in one PR — the ADR is the first commit of the feature's PR, not a separate deliverable on its own branch.
 
 ## Related Skills
