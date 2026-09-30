@@ -143,6 +143,40 @@ Every card's Anti-patterns section must include shortcuts that were considered a
 **Every card's Anti-patterns section MUST include:**
 - `- Do NOT close this card with any AC unchecked — no deferrals, no "lower priority" exceptions`
 
+## Remote CI Is Not an Acceptance Criterion — ALL Work
+
+**Never write an AC that can only be satisfied after pushing.** No "CI green on
+the branch", no "the PR merges", no "checks pass on the remote".
+
+Such an AC is unsatisfiable in the order the work actually happens. The AC review
+must come back clean *before* a commit is proposed, but a CI-dependent AC cannot
+be verified until after commit and push — so the card demands an order the
+process forbids. Faced with that, the tempting resolution is to commit first and
+review later, which is precisely the failure the review exists to prevent. A card
+should never push anyone toward that.
+
+It is also redundant. CI is already a gate: it runs on every push, it blocks the
+merge on its own, and nobody needs a checkbox to make that happen. Restating a
+gate as an AC does not add enforcement — it only moves the card's completion
+behind a step the author does not control.
+
+**Write the property, not the pipeline.** What the CI-flavoured AC usually means
+is something local and checkable:
+
+| Instead of | Write |
+|---|---|
+| "CI green across all modules" | "`go test ./...` passes in every workspace module" |
+| "the PR merges" | "no regressions on existing tests" |
+| "lint passes in CI" | "`pnpm lint` and `golangci-lint run` report zero issues" |
+| "the build succeeds on the runner" | "the build succeeds locally from a clean checkout" |
+
+Each of those is verifiable by the reviewer, on the diff, before anything is
+committed — which is what makes the gate work.
+
+**If CI later fails on something the ACs claimed passed,** that is a finding
+about the AC or the local check being too weak, not a reason to add a CI
+checkbox. Fix the check so it catches what CI caught.
+
 ## API Contract Changes Must Propagate Atomically — ALL Work
 
 **If your project maintains an API schema (OpenAPI, protobuf, GraphQL, JSON Schema), every response-shape change must update all downstream layers in the same commit.** The number of layers varies by project, but the principle is absolute: partial updates leave the contract inconsistent.

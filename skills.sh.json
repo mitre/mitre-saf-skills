@@ -17,7 +17,8 @@
         "project-docs",
         "spec-split-review",
         "package-audit",
-        "create-feature-plan-adr"
+        "create-feature-plan-adr",
+        "research"
       ]
     },
     {
