@@ -15,6 +15,11 @@ This skill exists because in a prior incident, cards were closed with incomplete
 
 - **MANDATORY before every `bd close`** — no exceptions
 - **MANDATORY before proposing a commit** — see below
+- **Run it without being asked, and without asking.** It is a step in the work,
+  not an option to offer. Do not ask the human whether to run it, do not present
+  it as a choice alongside the proposed commit, and do not wait for approval to
+  start it. A mandatory step surfaced as a question is one the human has to keep
+  answering, and one that gets skipped the moment they say "just commit it."
 - Invoked automatically by project-tdd and project-card workflows
 - Can be invoked standalone: `/project-ac-verify <card-id>`
 
