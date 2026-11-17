@@ -153,6 +153,23 @@ FAIL — list every failing item
 - `schema` option with structured output (pass/fail per AC + overall verdict)
 - No file editing permissions — read-only review
 - Bounded: one focused task, no exploration
+- **ONE reviewer per working tree.** Concurrent reviewers mutate the same files,
+  so one agent's live mutant makes another's read as killed and a full-suite run
+  reports another card's mutant as a failure. Measured: three reviews had to be
+  thrown away. Run them sequentially, or give each its own worktree.
+- **A mutant that does not COMPILE is not evidence.** Compile-gate every one and
+  record the exit code. `go vet` is a boolean gate ONLY — it stops at the first
+  type error, so it reported 1 undefined call site where
+  `go test -gcflags=-e -c -o /dev/null` reported 48. Never use it to enumerate.
+- **Verify every restore by hash** against a baseline recorded before the first
+  mutant, never by `diff -q` alone — which reports clean when compared against a
+  stale reference, and did.
+- **Treat "the sweep returns nothing" as a hypothesis** until the sweep has been
+  shown to find a planted positive. The implementer's Gate 21 requires the same;
+  a reviewer accepting an unvalidated null is how the next round finds the
+  instance this one missed.
+- **A test run is not a type check.** `vitest` strips types; run the package's
+  `type-check` and read its exit code.
 
 ### Step 5: Process the Result
 
@@ -252,7 +269,7 @@ Add to Gate 0 (Epic Context), after presenting the execution summary:
 Integrated as the final gate in project-tdd:
 
 ```
-### Gate 22: Independent AC Verification — MANDATORY
+### Gate 23: Independent AC Verification — MANDATORY
 
 Before running `bd close`, invoke /project-ac-verify <card-id>.
 
