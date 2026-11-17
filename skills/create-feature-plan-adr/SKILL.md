@@ -243,12 +243,32 @@ Show the draft to the user: "Here's the ADR. What's missing or wrong?"
 2. **Commit the ADR on the feature/fix branch that will carry the work — NOT a separate docs branch.** The ADR and the implementation it plans belong on the same branch and in the same PR. Create or switch to the `feat/<name>` (or `fix/<name>`) branch the work will land on and commit the ADR there as that PR's first commit. Do **not** open a standalone `docs/<name>` branch for the ADR first: that splits the decision from its implementation across two PRs and forces a later branch rename or rebase. If the branch doesn't exist yet, create it now with the feature/fix name (not a docs-only name).
 3. Save the file
 4. Ask: "Ready to create cards from this plan? Invoke the project-card skill to create the epic and cards from the Implementation Plan section."
+5. From the moment those cards exist, the ADR is **frozen** — see below.
+
+## The ADR freeze
+
+**Once an ADR has been turned into cards, do not edit it again until the epic is ready to close.** Then write ONE addendum recording what the implementation changed about the decision.
+
+Why: an ADR under implementation attracts a steady trickle of small prose corrections — a count that moved, a sentence a later card falsified, a table that stopped being exhaustive. Fixing each one as it surfaces means re-reviewing the ADR after every card, and the corrections themselves need correcting, because the picture is still moving. One review at the end is cheaper and more accurate than N reviews during.
+
+**During the epic, when a card falsifies something in the ADR:** record it in the CARD's notes, naming the ADR section and what is now wrong. Do not touch the ADR. The card notes are the running list the addendum is written from, so nothing is lost by waiting.
+
+**When the epic is ready to close**, do the prose pass once:
+
+1. Collect every ADR discrepancy the cards recorded.
+2. Re-measure each one — figures in an ADR go stale twice, and a correction written from a card note is a second-hand claim.
+3. Write one dated addendum: what the ADR said, what the implementation actually did, and why it diverged. Quote the original text so the record survives.
+4. Review that addendum once, as part of closing the epic.
+
+**What still warrants touching a frozen ADR mid-epic:** a statement that is actively dangerous to a reader — a security claim that is false, or a rule the code now enforces in the opposite direction. That is a correction, not an improvement, and it gets its own dated amendment immediately. Everything else waits. If you find yourself arguing that a stale count qualifies, it does not.
+
+**What is never in scope either way:** rewriting an ADR to match what was built. The ADR records what was decided and when. Divergence belongs in the addendum, not in edits that erase the original reasoning.
 
 ## Gotchas
 
 - An ADR that says "we chose X" without listing alternatives is not an ADR — it's a post-hoc rationalization. Always document what was considered and rejected.
 - The implementation plan must be specific enough for the project-card skill to create testable cards. "Implement the feature" is not a plan. "Phase 1: add the model migration + factory + request spec" is.
-- ADRs are immutable once accepted. If a decision changes, create a new ADR that supersedes the old one — don't edit the original.
+- **An ADR is frozen from the moment it becomes cards until its epic is ready to close.** See "The ADR freeze" below. If the DECISION itself changes, create a new ADR that supersedes the old one — don't edit the original.
 - The "do nothing" alternative is always valid. If the problem isn't worth solving, the ADR should say so.
 - Don't stage the ADR on a throwaway `docs/` branch. It lives on the `feat/`|`fix/` branch that will carry the implementation, so the decision and the code ship together in one PR — the ADR is the first commit of the feature's PR, not a separate deliverable on its own branch.
 
