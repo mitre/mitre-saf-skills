@@ -1,9 +1,10 @@
 ---
 name: project-tdd
 description: >-
-  TDD with 22 quality gates learned from production audits. Covers exhaustive
+  TDD with 23 quality gates learned from production audits. Covers exhaustive
   branching, test sufficiency, type safety, DRY, visual verification, API
-  contract atomicity, ORM callback validation, and linter discipline. Use for
+  contract atomicity, ORM callback validation, linter discipline, and the evidence a claim
+    needs before it may say "all". Use for
   development in projects using beads for issue tracking.
 compatibility: Requires beads CLI (bd). Gates reference multiple stacks.
 license: Apache-2.0
@@ -352,9 +353,72 @@ Before writing ANY CSS or modifying ANY Vue component, check if the project has 
 
 **Check:** Does your diff contain ANY new linter disable comments? If yes, STOP. Research the proper fix. If you can't explain why the disable is architecturally necessary (not just convenient), remove it and fix the code.
 
+### Gate 21: No Class Claim Without a Pasted Sweep; No Null Result Without a Planted Positive — MANDATORY
+
+Two checks, both mechanical, both producing an artifact. They exist because the
+knowledge they encode was already written down and still did not fire: the
+failures below all happened in sessions where the relevant rule was in memory.
+A reminder is not a defense. **The claim is where the defect enters, so the check
+belongs at the claim.**
+
+**21a. Before writing any sentence containing *all*, *every*, *only*, *the one
+place*, *no longer anywhere*, *none remain*, or *fixed in all N places*:**
+
+1. Reduce the claim to a literal, greppable string — the phrase, the identifier,
+   the field name. Not a description of it.
+2. Run it across **every** language, fixture table, test file, help string and doc
+   in the repo. Not the diff. `git grep -P` when the pattern needs `\b`, which
+   `git grep -E` silently ignores.
+3. **Paste the command and its output** into the card note or the report.
+4. Only then may the sentence say *all*. With no pasted output, downgrade it to
+   "the instance at `file:line`" and say nothing about the class.
+
+**Why:** fixing the instance and asserting the class is what produces
+one-finding-per-review-round, because each round's fix leaves the next instance
+for the next round to find. Measured: a claim "reworded in all three places" where
+there were six; the same false sentence found in a sibling file across four
+consecutive rounds, twice inside the very hunk that fixed the previous round; a
+card note asserting a fixture table confirmed three edges that were not rows in
+it. Serialized, each of those cost a full round trip.
+
+**The code form of the same error:** when a guard is defeated and the fix EXCLUDES
+the demonstrated input, that is a signal the condition is the wrong shape, not
+that it needs one more exclusion. Measured: five versions of one guard, each
+excluding the case just demonstrated; and a URL matcher that excluded
+`notspdx.org`, then `/spdx.org/`, and still admitted a doubled slash on the third
+attempt. **Stop excluding spellings — compare the parsed thing.** The stdlib
+usually already has the parser.
+
+**21b. Before any null result counts as evidence, make the check fail once on
+purpose.** A check that has never failed has not been shown capable of failing.
+
+- **A mutant that does not COMPILE is not evidence.** Confirm the compile
+  separately and read its exit code. `go vet` is a boolean gate ONLY — it stops at
+  the first type error, so it reported 1 undefined call site where
+  `go test -gcflags=-e -c -o /dev/null` reported 48. Never use it to enumerate.
+- **A sweep that finds nothing is validated against a planted positive first** —
+  plant the thing, see it found, then trust the null.
+- **A test run is not a type check.** `vitest` strips types; run the package's
+  `type-check` and read its exit code. 121 passing tests sat on top of a build
+  `tsc` rejected.
+- **Read full command output.** `go doc` prints the signature first and the comment
+  AFTER; three separate truncated reads showed "no comment" for a comment that was
+  correctly attached.
+- **Confirm a tool exists before trusting its silence.** `timeout` is absent on
+  macOS: the probe printed `command not found` and exit 0, which read as a pass.
+- **Never emit an unconditional reassurance.** A line like
+  `echo "(no FAIL = green)"` prints after a FAIL. Print the failures, or the count,
+  never a bare claim of success.
+
+**Check, both halves, before invoking Gate 23 (independent AC verification):**
+Can you paste a sweep for every class claim you are about to make, and name the
+planted positive for every check whose null result you are relying on? If not,
+you are not ready for review — and sending it anyway is what spends a reviewer's
+round on something a grep would have found.
+
 ## Card Close Protocol
 
-### Gate 21: AC Completeness — MANDATORY
+### Gate 22: AC Completeness — MANDATORY
 
 **Before running `bd close`, re-read EVERY acceptance criteria checkbox on the card. If ANY AC is not implemented, the card stays OPEN.** There is no "lower priority" exception, no "deferred to follow-up" exception, no "WARNING-level" exception. If the AC is on the card, it gets done or the card does not close.
 
@@ -364,7 +428,7 @@ Before writing ANY CSS or modifying ANY Vue component, check if the project has 
 
 **Check:** Can you paste evidence for every AC checkbox? If not, the card is not done.
 
-### Gate 22: Independent AC Verification — MANDATORY
+### Gate 23: Independent AC Verification — MANDATORY
 
 **Before running `bd close`, invoke the project-ac-verify skill on `<card-id>`.** This conducts an independent review that checks every AC against the code diff AND the referenced design document section. The reviewer has no investment in closing the card — its only job is verification.
 

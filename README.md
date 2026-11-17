@@ -61,7 +61,7 @@ Skills for teams using beads for issue tracking and task management.
 | Skill | Description |
 |-------|-------------|
 | **[create-beads-board](skills/create-beads-board/)** | Set up a beads board in any repo. Three modes: local (embedded), shared (team Dolt server), and shared+remote (with DoltHub/GitHub sync). |
-| **[project-tdd](skills/project-tdd/)** | TDD with quality gates learned from production audits. 22 gates covering exhaustive branching, type safety, test sufficiency, DRY, error classification, and more. |
+| **[project-tdd](skills/project-tdd/)** | TDD with quality gates learned from production audits. 23 gates covering exhaustive branching, type safety, test sufficiency, DRY, error classification, and more. |
 | **[project-card](skills/project-card/)** | Create well-structured beads cards with the mandatory 12-section template. Enforces acceptance criteria, verification commands, and anti-patterns. |
 | **[project-ac-verify](skills/project-ac-verify/)** | Independent agent review of card acceptance criteria before close. Spawns a reviewer that checks each AC against the actual code diff and design doc. |
 | **[prepare-compact](skills/prepare-compact/)** | Save full session context before context compaction or loss. Archives recovery files, updates beads cards, syncs to remote, and writes strategic recovery context for the next session. |
