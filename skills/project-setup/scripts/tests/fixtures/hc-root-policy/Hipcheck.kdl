@@ -1,0 +1,3 @@
+// old layout: policy at the root with no .hipcheck directory
+plugins {
+}

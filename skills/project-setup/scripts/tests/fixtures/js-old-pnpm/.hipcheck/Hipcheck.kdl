@@ -1,0 +1,10 @@
+// Minimal valid policy for the test fixture. The real policy ships in the
+// skill's assets/common/hipcheck/ directory.
+plugins {
+    plugin "mitre/activity" version="^0.6" manifest="https://hipcheck.mitre.org/dl/plugin/mitre/activity.kdl"
+}
+
+analyze {
+    investigate policy="(gt 0.5 $)"
+    analysis "mitre/activity" policy="(lte $ P52w)"
+}

@@ -1,0 +1,25 @@
+# pnpm settings for a repo set up with the project-setup skill. pnpm 10 and
+# later read settings from this file rather than .npmrc. Copy to the repo root
+# and add your workspace packages under "packages:" if this is a workspace.
+#
+# packages:
+#   - 'packages/*'
+
+# G-01: pnpm 10 and later run no dependency lifecycle scripts unless the
+# package is named here. Add a package only after reading its install script,
+# and say why in the commit. Do not set ignoreScripts: true to "harden" this
+# further: it also silences this project's own prepare and similar scripts
+# while adding nothing the allowlist does not already give. Older pnpm used
+# the list form onlyBuiltDependencies; both are read.
+allowBuilds: {}
+
+# G-02: record exact versions so a later resolve cannot drift to a version the
+# gate never saw.
+saveExact: true
+
+# G-03: refuse versions published less than this many minutes ago. 4320 is
+# three days: most malicious publishes are removed within hours. Needs pnpm
+# 10.16 or later; older pnpm ignores the key, so pin pnpm in packageManager.
+# minimumReleaseAgeExclude lists packages exempt from the cooldown (your own
+# workspace packages, typically); the verifier reports its members.
+minimumReleaseAge: 60

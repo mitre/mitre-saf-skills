@@ -1,0 +1,3 @@
+## Dependencies and repo hardening
+
+This repo is set up with the project-setup skill. Before adding or changing any dependency, run `bash scripts/dep-gate.sh add <package>[@version]`. It resolves the change without fetching, evaluates each new package (Hipcheck policy, osv-scanner, release age, provenance), and only then installs with lifecycle scripts disabled. Plain install, add, get, or tidy commands are refused by a harness hook; do not work around it by editing the manifest and running a lockfile-faithful install. To check the repo's setup, run `verify-setup.sh` from the project-setup skill and fix every FAIL it reports before adding the first dependency.

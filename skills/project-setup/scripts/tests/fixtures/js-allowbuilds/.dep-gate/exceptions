@@ -1,0 +1,10 @@
+# Exceptions for the dependency gates (scripts/dep-gate.sh), one per line:
+#   <name>@<version> <CHECK> <justification>
+# CHECK is one of the gate's check names:
+#   JavaScript: AGE SCRIPTS SIGNATURE PROVENANCE VULNS HIPCHECK REGISTRY
+#   Go:         AGE SUMDB VULNS HIPCHECK PROXY
+# An entry turns a FAIL on that exact name@version and check into ACCEPTED and
+# prints the justification. Exceptions are exact-version and per-check, so a
+# transitive dependency needs its own line. Record who decided and why; this
+# file is reviewed in pull requests, and it is how a reviewed "Investigate"
+# verdict is recorded without loosening the Hipcheck policy.

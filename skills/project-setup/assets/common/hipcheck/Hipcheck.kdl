@@ -1,0 +1,104 @@
+// Hipcheck policy for repositories set up with the project-setup skill.
+//
+// Copy this whole directory into the repo as .hipcheck/ and point HC_CONFIG
+// at it. The data files referenced by relative path must stay next to this
+// file. Tune a threshold here, in the repo, and say why in the commit message.
+// Never loosen a threshold so that one package passes; that is what
+// "investigate" and a written justification are for.
+//
+// How a verdict forms: every analysis passes or fails its policy expression.
+// The weighted share of failing analyses is the risk score; "Investigate"
+// fires when the score exceeds the investigate policy below, or when an
+// analysis named in investigate-if-fail fails on its own. Analyses that could
+// not run (missing token scope, no lockfile upstream) appear in the JSON
+// "errored" list rather than passing or failing; the dependency gate treats
+// an errored analysis as a failure, because an unexamined item is not a safe
+// item.
+//
+// Not enabled: mitre/fuzz. It checks for OSS-Fuzz participation, which small
+// libraries almost never have, so it fails nearly every dependency and trains
+// people to ignore the verdict. Enable it for projects that only take
+// dependencies on large, fuzzed infrastructure.
+
+plugins {
+    plugin "mitre/activity" version="^0.6" manifest="https://hipcheck.mitre.org/dl/plugin/mitre/activity.kdl"
+    plugin "mitre/affiliation" version="^0.6" manifest="https://hipcheck.mitre.org/dl/plugin/mitre/affiliation.kdl"
+    plugin "mitre/binary" version="^0.5" manifest="https://hipcheck.mitre.org/dl/plugin/mitre/binary.kdl"
+    plugin "mitre/churn" version="^0.6" manifest="https://hipcheck.mitre.org/dl/plugin/mitre/churn.kdl"
+    plugin "mitre/entropy" version="^0.6" manifest="https://hipcheck.mitre.org/dl/plugin/mitre/entropy.kdl"
+    plugin "mitre/identity" version="^0.6" manifest="https://hipcheck.mitre.org/dl/plugin/mitre/identity.kdl"
+    plugin "mitre/review" version="^0.5" manifest="https://hipcheck.mitre.org/dl/plugin/mitre/review.kdl"
+    plugin "mitre/typo" version="^0.5" manifest="https://hipcheck.mitre.org/dl/plugin/mitre/typo.kdl"
+}
+
+patch {
+    // The github plugin backs review and affiliation. The token needs read
+    // access to public repositories and to user emails (classic scopes
+    // read:user and user:email); without the email scope, affiliation errors.
+    plugin "mitre/github" {
+        api-token-var "HC_GITHUB_TOKEN"
+    }
+    // The linguist plugin decides which files are source for churn and entropy.
+    plugin "mitre/linguist" {
+        langs-file #rel("Langs.kdl")
+    }
+}
+
+analyze {
+    // Investigate when more than half of the weighted analyses fail.
+    investigate policy="(gt 0.5 $)"
+    // Decisive on their own: a likely typosquat or a committed binary triggers
+    // Investigate regardless of the overall score.
+    investigate-if-fail "mitre/typo" "mitre/binary"
+
+    category "practices" {
+        // Last commit within 52 weeks. Weighted 3x: an abandoned package will
+        // not get a fix when it needs one.
+        analysis "mitre/activity" policy="(lte $ P52w)" weight=3
+
+        // No binary files in the source tree. A committed binary cannot be
+        // reviewed and is how prebuilt payloads ship. Zero tolerance.
+        analysis "mitre/binary" {
+            binary-file #rel("Binary.kdl")
+            binary-file-threshold 0
+        }
+
+        // At most 5% of merged pull requests without a review.
+        analysis "mitre/review" policy="(lte (divz (count (filter (eq #f) $)) (count $)) 0.05)"
+
+        // Plugin default: at most 20% of commits where committer and author
+        // are the same person (self-merged, unreviewed by construction).
+        analysis "mitre/identity"
+    }
+
+    category "attacks" {
+        // Package name within typo distance of a popular package: zero
+        // tolerance. Typos.kdl lists the popular names per ecosystem. This
+        // analysis needs a lockfile in the upstream repo and errors otherwise.
+        analysis "mitre/typo" {
+            typo-file #rel("Typos.kdl")
+            count-threshold 0
+        }
+
+        category "commit" {
+            // Committers affiliated with organizations in Orgs.kdl. The shipped
+            // Orgs.kdl uses strategy "independent" and flags nothing by itself;
+            // edit it to name the organizations your policy cares about.
+            analysis "mitre/affiliation" {
+                orgs-file #rel("Orgs.kdl")
+                count-threshold 0
+            }
+
+            // No commit with an entropy z-score above 8. High-entropy commits
+            // are where obfuscated or encoded payloads land.
+            analysis "mitre/entropy" policy="(eq 0 (count (filter (gt 8.0) $)))" {
+                entropy-threshold 10.0
+                commit-percentage 0.0
+            }
+
+            // At most 2% of commits with a churn z-score above 3. Oversized
+            // commits are hard to review and a common place to hide changes.
+            analysis "mitre/churn" policy="(lte (divz (count (filter (gt 3) $)) (count $)) 0.02)"
+        }
+    }
+}

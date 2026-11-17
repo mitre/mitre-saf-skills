@@ -1,0 +1,1 @@
+packages: ["libs/*", "libs/**/test", "!**/test"]  # flow style

@@ -1,0 +1,87 @@
+# Dependency gate for Go modules on pull requests. Copied verbatim from the
+# project-setup skill's assets/go/dep-gate-go.yml into .github/workflows/.
+# Evaluates every module that is new in any go.sum relative to the base branch,
+# then runs govulncheck and osv-scanner over the whole dependency set.
+#
+# Actions are pinned to commit SHAs (tag in the comment). Hipcheck is installed
+# from a pinned release with its published checksum. Secrets: HC_GITHUB_TOKEN
+# (public_repo, read:user, user:email) lets Hipcheck's review and affiliation
+# analyses run; without it the job falls back to GITHUB_TOKEN and those
+# analyses error, which the gate treats as a failure.
+name: dependency gate (go)
+
+on:
+  pull_request:
+    paths:
+      - '**/go.mod'
+      - '**/go.sum'
+      - 'go.work'
+      - 'go.work.sum'
+      - '.dep-gate/**'
+      - '.hipcheck/**'
+      - 'scripts/dep-gate.sh'
+      - 'scripts/dep-gate-go.sh'
+
+permissions:
+  contents: read
+
+env:
+  HIPCHECK_VERSION: 3.15.0
+  HIPCHECK_SHA256: 1596768a44009380d92418615810549f6e204f2382609c97202fa3287a59e5b5   # hipcheck-x86_64-unknown-linux-gnu.tar.xz
+  GOFLAGS: -mod=readonly
+  GOTOOLCHAIN: auto
+
+jobs:
+  gate:
+    name: evaluate new modules
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out (full history, for the base-branch go.sum files)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go (version from go.work or go.mod)
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff   # v5
+        with:
+          go-version-file: ${{ hashFiles('go.work') != '' && 'go.work' || 'go.mod' }}
+          cache: false
+
+      - name: Install Hipcheck (pinned release, checksum verified)
+        run: |
+          set -euo pipefail
+          url="https://github.com/mitre/hipcheck/releases/download/hipcheck-v${HIPCHECK_VERSION}/hipcheck-x86_64-unknown-linux-gnu.tar.xz"
+          curl -sSfL "$url" -o hipcheck.tar.xz
+          echo "${HIPCHECK_SHA256}  hipcheck.tar.xz" | sha256sum -c -
+          mkdir -p "$HOME/.local/bin" && tar -xJf hipcheck.tar.xz -C "$HOME/.local/bin" --strip-components=1
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/hc" --version
+
+      - name: Evaluate modules new since the base branch
+        env:
+          HC_GITHUB_TOKEN: ${{ secrets.HC_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+          HC_CONFIG: .hipcheck
+          HC_CACHE: .hipcheck-cache
+          HC_VERBOSITY: quiet
+          HC_COLOR: never
+        run: bash scripts/dep-gate-go.sh check "origin/${{ github.base_ref }}"
+
+      - name: govulncheck every module (reachable vulnerabilities)
+        env:
+          GOVULNCHECK_VERSION: v1.8.0
+        run: |
+          set -euo pipefail
+          go install "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}"
+          gvc="$(go env GOPATH)/bin/govulncheck"
+          if [ -f go.work ]; then
+            go work edit -json | jq -r '.Use[].DiskPath' | while read -r m; do
+              echo "== $m"; ( cd "$m" && "$gvc" ./... )
+            done
+          else
+            "$gvc" ./...
+          fi
+
+      - name: osv-scanner over the module set
+        uses: google/osv-scanner-action/osv-scanner-action@a345acffa64b0eaede81a3d9aae6141214d9c8fc   # v2.6.0
+        with:
+          scan-args: --recursive .

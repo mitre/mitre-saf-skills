@@ -10,10 +10,11 @@ description: >-
   a project", "new repo", "project setup", or before adding the first
   dependency to a fresh codebase. Works on new and existing repos alike.
 compatibility: >-
-  Requires bash, git, and grep for the verifier. Language references need the
-  language toolchain (pnpm and Node for JavaScript, Go for Go). The dependency
-  gate needs hc (MITRE Hipcheck) and osv-scanner on PATH, and network access to
-  the package registry. CI templates target GitHub Actions.
+  Requires bash 3.2 or later, git, and grep for the verifier. Language
+  references need the language toolchain (pnpm and Node for JavaScript, Go for
+  Go). The dependency gate needs curl, jq, openssl, hc (MITRE Hipcheck), and
+  network access to the package registry and to api.osv.dev; the CI workflow
+  also runs osv-scanner. CI templates target GitHub Actions.
 license: Apache-2.0
 ---
 
@@ -43,18 +44,20 @@ Run this from the target repo's root. A repo can match more than one marker.
 
 | Marker | Language | Reference to load |
 |---|---|---|
-| `package.json` | JavaScript / TypeScript | Read `references/javascript.md` |
-| `go.mod` | Go | Read `references/go.md` |
+| `package.json` or `pnpm-workspace.yaml` | JavaScript / TypeScript | Read `references/javascript.md` |
+| `go.mod` or `go.work` | Go | Read `references/go.md` |
 | `pyproject.toml` or `requirements.txt` | Python | No reference yet. See "No reference for a detected language" below |
 | `Gemfile` | Ruby | No reference yet. See "No reference for a detected language" below |
 | `Cargo.toml` | Rust | No reference yet. See "No reference for a detected language" below |
 | None found | Unknown or empty repo | Ask the user which language the repo will use |
 
 ```bash
-for f in package.json go.mod pyproject.toml requirements.txt Gemfile Cargo.toml; do if [ -f "$f" ]; then echo "$f"; fi; done
+for f in package.json pnpm-workspace.yaml go.mod go.work pyproject.toml requirements.txt Gemfile Cargo.toml; do if [ -f "$f" ]; then echo "$f"; fi; done
 ```
 
 Load only the references that match. Do not read the others. This step decides which references you read; the verifier in Step 2 does its own detection for its checks. If the two disagree, the verifier is authoritative and the disagreement is a bug to report.
+
+**Workspaces and monorepos are the normal case, not an edge case.** A repo is one or more units per language: the root package.json plus every package listed in pnpm-workspace.yaml, and the root go.mod plus every module listed in go.work. A repo with go.work and no root go.mod is a Go repo. Run `bash scripts/verify-setup.sh --list-units /path/to/repo` to see exactly which units the verifier found before judging any of them. The root package.json counts as a unit because pnpm installs and locks its dependencies like any other package, even though recursive pnpm commands skip it by default.
 
 **No reference for a detected language:** tell the user that no reference exists for it yet, and that only the language-independent items G-05, G-07, G-10, and G-11 can be fixed from this skill. Ask whether to proceed with those four or stop. Do not improvise fixes for the other IDs.
 
@@ -73,15 +76,20 @@ The script path is relative to this skill's directory. The argument is the targe
 bash scripts/verify-setup.sh /path/to/repo
 ```
 
-The script detects languages itself, runs one check per ID, and prints one line per ID:
+The script detects languages itself, runs one check per ID, and prints one line per ID. Language-specific IDs print one line per detected language, tagged with the language:
 
 ```
-G-01 FAIL  no .npmrc with ignore-scripts=true
-G-02 PASS  pnpm-lock.yaml committed, save-exact set
-G-03 SKIP  no javascript check for G-03 yet
+G-01 FAIL  [javascript] no .npmrc with ignore-scripts=true
+G-02 PASS  [javascript] pnpm-lock.yaml committed, save-exact set
+G-02 FAIL  [go:services/api] listed in go.work but go.mod is missing
+G-03 FAIL  [javascript] no javascript check for G-03 yet
+G-05 FAIL  no .hipcheck/Hipcheck.kdl (copy assets/common/hipcheck/ to .hipcheck/)
+G-09 PASS  [go] go.work pins the toolchain (go 1.24)
 ```
 
-Every ID is global, but the check for most IDs is implemented per language, because what satisfies the ID differs by toolchain. An ID prints SKIP when no check exists yet for a detected language. It exits 1 if any line is FAIL and 0 otherwise. SKIP never fails. Pass `--json` for a JSON array with the same content.
+A line tagged `[language]` is a repo-level judgment. A line tagged `[language:path]` is about one unit, so a single broken module in a workspace is visible by name.
+
+Every ID is global, but the check for most IDs is implemented per language, because what satisfies the ID differs by toolchain. A detected language with no check yet for an ID is a FAIL, not a SKIP: the item was not examined, so the verifier cannot report the repo as hardened, and the exit code has to say so until the check exists. SKIP appears only when no language was detected at all, and SKIP never fails. An ID that genuinely does not apply to a toolchain, such as install scripts for Go, is a PASS with a reason from that language's check, never a SKIP. It exits 1 if any line is FAIL and 0 otherwise. Pass `--json` for a JSON array with the same content, and `--help` for the full interface.
 
 A missing tool is a FAIL with a reason, never a PASS. Do not install tools globally to make a check pass without telling the user.
 
@@ -132,17 +140,17 @@ These apply to every language. The language reference maps each ID onto the conc
 
 ### G-04 Dependency gate installed and wired to CI
 
-- **Requirement:** `dep-gate.sh` from `assets/<language>/` is present and a GitHub Actions workflow runs it on every pull request that changes the lockfile.
+- **Requirement:** the dispatcher `scripts/dep-gate.sh` from `assets/common/` and the language gate `scripts/dep-gate-<language>.sh` from `assets/<language>/` are present, byte-identical to the templates, and a GitHub Actions workflow runs the gate on every pull request that changes the lockfile.
 - **Why:** The gate is what evaluates each new package before it is fetched. CI is what protects the main branch from dependencies added by any route, including a human bypassing the local workflow.
 - **Verify:** `verify-setup.sh` G-04.
-- **Fix:** Copy `assets/<language>/dep-gate.sh` and `assets/<language>/dep-gate.yml`. Reference section G-04 lists the placeholders.
+- **Fix:** Copy `assets/common/dep-gate.sh`, `assets/<language>/dep-gate-<language>.sh`, and the language's workflow template. Reference section G-04 lists the files. One dispatcher serves every language in a polyglot repo.
 
-### G-05 Hipcheck policy present and cache relocated into the repo
+### G-05 Hipcheck policy directory present, config and cache inside the repo
 
-- **Requirement:** A `Hipcheck.kdl` policy file is at the repo root and the Hipcheck cache path points inside the repo.
-- **Why:** Hipcheck scores the upstream source repository for activity, review practice, affiliation, binaries, and typosquatting. The policy file is what turns scores into a verdict. Keeping the cache inside the repo means a sandboxed agent needs no grant outside the repo and unrelated projects do not share state.
+- **Requirement:** A `.hipcheck/` directory holds `Hipcheck.kdl` and its data files, and `.env` sets `HC_CONFIG` and `HC_CACHE` to paths inside the repo.
+- **Why:** Hipcheck scores the upstream source repository for activity, review practice, self-merged commits, affiliation, binaries, and typosquatting. The policy file turns scores into a verdict, and it references its data files relative to itself, so they travel as a directory. Keeping config and cache inside the repo means a sandboxed agent needs no grant outside the repo and unrelated projects do not share state or policy.
 - **Verify:** `verify-setup.sh` G-05.
-- **Fix:** Copy `assets/common/Hipcheck.kdl`. Read `references/hipcheck.md` for setup, cache relocation, and the token some analyses need.
+- **Fix:** Copy `assets/common/hipcheck/` to `.hipcheck/` and add the `.env` lines from `references/hipcheck.md`. Read that reference for the token some analyses need, the first-run plugin download, and known failure causes.
 
 ### G-06 Known-vulnerability scan in CI
 
@@ -156,7 +164,7 @@ These apply to every language. The language reference maps each ID onto the conc
 - **Requirement:** The agent harness refuses a direct install command and points to the gate, unless the gate has just passed.
 - **Why:** The CI gate catches dependencies after they are on a branch. By then the install already ran on the agent's machine. A command hook in the harness makes the gate the only path to an install.
 - **Verify:** `verify-setup.sh` G-07.
-- **Fix:** Copy the hook snippet from `assets/common/` into the harness's project settings. Read `references/hipcheck.md` for the merge procedure. Harnesses without command hooks get the rule in the agent instructions file instead, and the reference says this is weaker.
+- **Fix:** Copy `assets/common/dep-gate-hook.sh` to `scripts/dep-gate-hook.sh` and merge `assets/common/claude-settings-hook.json` into the harness's project settings. Read `references/agent-hook.md` for the merge procedure, what is denied and allowed, and how to test it by hand. Harnesses without command hooks get the rule in the agent instructions file instead, and the reference says this is weaker.
 
 ### G-08 Artifact provenance verified
 
@@ -168,7 +176,7 @@ These apply to every language. The language reference maps each ID onto the conc
 ### G-09 Toolchain version pinned in the repo
 
 - **Requirement:** The language runtime and package manager versions are recorded in a file the toolchain reads.
-- **Why:** An unpinned toolchain means two machines resolve and build differently, and an agent may install whatever version a script fetches. Pin the version in the repo. Do not mandate a specific version manager; most read the same files.
+- **Why:** An unpinned toolchain means two machines resolve and build differently, and an agent may install whatever version a script fetches. Pin the version in the repo. Do not mandate a specific version manager; most read the same files. Monorepos often pin through the manifest rather than a version file: for JavaScript, an engines field plus the packageManager field in the root package.json counts; for Go, the go or toolchain directive in go.work governs every module. The language reference lists exactly which files count.
 - **Verify:** `verify-setup.sh` G-09.
 - **Fix:** Reference section G-09.
 
@@ -191,6 +199,7 @@ These apply to every language. The language reference maps each ID onto the conc
 - **Scripts off is not the same as safe.** G-01 stops install-time execution only. Dependency code still runs the moment a test imports it. The gate lowers the chance that a bad package lands. The sandbox bounds what it can do if one does. Do not describe a repo as protected because G-01 passes.
 - **An "investigate" verdict fails the gate.** Hipcheck reports pass or investigate. The gate treats investigate as a failure and prints the reasons. Deciding what to do about it, choosing an alternative, or writing a justification is a separate activity and a separate skill. This skill installs the gate; it does not argue with it.
 - **Hipcheck looks at the repository, not the artifact.** It cannot see that the published tarball differs from the tagged source. G-08 is the complement, not an optional extra.
+- **An errored Hipcheck analysis is not a pass.** Missing token scopes and upstream repos without a lockfile make analyses error rather than fail. The gate treats errored as failed and prints the cause. Fix the cause or justify the acceptance; do not read "no failing analyses" as clean.
 - **Some toolchains satisfy IDs by default.** Go has no install hooks and verifies checksums against a transparency log out of the box. The check for those IDs is that the default has not been disabled, and the reference names the settings that disable it.
 - **Do not generate what is in `assets/`.** If a template is missing a placeholder the repo needs, extend the template in this skill rather than writing a one-off in the target repo.
 - **Do not add languages as nested skills.** A new language is a new `references/<language>.md`, an `assets/<language>/` directory, and check functions in the verifier. A `SKILL.md` inside a subdirectory is a separate skill to every agent that reads the spec, and it would not share this checklist.
@@ -200,8 +209,8 @@ These apply to every language. The language reference maps each ID onto the conc
 To add a language:
 
 1. Write `references/<language>.md` with one section per G-xx ID, in order, stating the config, the reason, and the manual verify command. Say explicitly when the toolchain satisfies an ID by default.
-2. Add `assets/<language>/dep-gate.sh` and `dep-gate.yml` following the resolve, evaluate, fetch structure. The JavaScript gate is the reference implementation.
-3. Add check functions to `scripts/verify-setup.sh` and a fixture under `scripts/tests/fixtures/<language>-pass/`.
+2. Add `assets/<language>/dep-gate-<language>.sh` and a workflow template following the resolve, evaluate, fetch structure, and teach the dispatcher in `assets/common/dep-gate.sh` to recognize the language. The JavaScript gate is the reference implementation.
+3. Add check functions to `scripts/verify-setup.sh` and a fixture under `scripts/tests/fixtures/<language>-pass/`. The dispatch contract is in the script header: a plain check function runs once per unit with the unit path as its argument, and a `_root` variant runs once per repo for items judged at the workspace root such as the lockfile. Every workspace fixture must show a per-unit line naming a path.
 4. Add the marker row to the detection table in Step 1.
 
 ## Related Skills

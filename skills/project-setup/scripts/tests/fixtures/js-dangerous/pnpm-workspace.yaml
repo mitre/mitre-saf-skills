@@ -1,0 +1,5 @@
+ignoreScripts: true
+onlyBuiltDependencies: []
+dangerouslyAllowAllBuilds: true
+saveExact: true
+minimumReleaseAge: 4320

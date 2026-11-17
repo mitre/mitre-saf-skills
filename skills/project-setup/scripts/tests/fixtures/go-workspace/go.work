@@ -1,0 +1,8 @@
+go 1.24
+
+// mod-c is listed but has no go.mod: the verifier must name it.
+use (
+	./mod-a
+	./mod-b
+	./mod-c
+)

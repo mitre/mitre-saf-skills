@@ -1,0 +1,1 @@
+../../../../../assets/common/dep-gate.sh

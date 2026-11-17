@@ -1,0 +1,13 @@
+// Plugin process settings. Hipcheck starts about a dozen plugin processes per
+// run; on a cold file cache, a sandboxed machine, or a busy CI runner the
+// defaults (100 ms backoff, 3 spawn attempts) can give up with "Reached max
+// spawn attempts for plugin ..." before the binaries have loaded. These values
+// wait longer before concluding a plugin is broken; they do not slow a healthy
+// start, because a plugin that answers early is used immediately.
+plugin {
+    backoff-interval 500000
+    max-spawn-attempts 6
+    max-conn-attempts 10
+    jitter-percent 10
+    grpc-msg-buffer-size 10
+}

@@ -1,0 +1,75 @@
+# Dependency gate for pull requests. Copied verbatim from the project-setup
+# skill's assets/javascript/dep-gate.yml into .github/workflows/. Evaluates
+# every package that is new in pnpm-lock.yaml relative to the base branch, and
+# scans the whole lockfile for known vulnerabilities.
+#
+# Actions are pinned to commit SHAs (the tag they correspond to is in the
+# comment) so the gate itself is not a moving dependency. Bump deliberately.
+#
+# Secrets: HC_GITHUB_TOKEN, a token with public_repo, read:user and user:email,
+# lets Hipcheck's review and affiliation analyses run. Without it the job falls
+# back to GITHUB_TOKEN, which lacks the user scopes, and those analyses error,
+# which the gate treats as a failure (see references/hipcheck.md).
+name: dependency gate
+
+on:
+  pull_request:
+    paths:
+      - 'pnpm-lock.yaml'
+      - 'package.json'
+      - '**/package.json'
+      - 'pnpm-workspace.yaml'
+      - '.dep-gate/**'
+      - '.hipcheck/**'
+      - 'scripts/dep-gate.sh'
+      - 'scripts/dep-gate-javascript.sh'
+
+permissions:
+  contents: read
+
+env:
+  HIPCHECK_VERSION: 3.15.0
+  HIPCHECK_SHA256: 1596768a44009380d92418615810549f6e204f2382609c97202fa3287a59e5b5   # hipcheck-x86_64-unknown-linux-gnu.tar.xz
+  OSV_SCANNER_VERSION: v2.6.0
+
+jobs:
+  gate:
+    name: evaluate new dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out (full history, for the base-branch lockfile)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262   # v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up pnpm (version from packageManager)
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1   # v4
+
+      - name: Set up Node (version from engines.node or .nvmrc)
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020   # v4
+        with:
+          node-version-file: package.json
+
+      - name: Install Hipcheck (pinned release, checksum verified)
+        run: |
+          set -euo pipefail
+          url="https://github.com/mitre/hipcheck/releases/download/hipcheck-v${HIPCHECK_VERSION}/hipcheck-x86_64-unknown-linux-gnu.tar.xz"
+          curl -sSfL "$url" -o hipcheck.tar.xz
+          echo "${HIPCHECK_SHA256}  hipcheck.tar.xz" | sha256sum -c -
+          mkdir -p "$HOME/.local/bin" && tar -xJf hipcheck.tar.xz -C "$HOME/.local/bin" --strip-components=1
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/hc" --version
+
+      - name: Evaluate packages new since the base branch
+        env:
+          HC_GITHUB_TOKEN: ${{ secrets.HC_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+          HC_CONFIG: .hipcheck
+          HC_CACHE: .hipcheck-cache
+          HC_VERBOSITY: quiet
+          HC_COLOR: never
+        run: bash scripts/dep-gate-javascript.sh check "origin/${{ github.base_ref }}"
+
+      - name: Scan the whole lockfile for known vulnerabilities
+        uses: google/osv-scanner-action/osv-scanner-action@a345acffa64b0eaede81a3d9aae6141214d9c8fc   # v2.6.0
+        with:
+          scan-args: --lockfile=pnpm-lock.yaml

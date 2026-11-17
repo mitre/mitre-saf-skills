@@ -1,0 +1,1 @@
+../../../../../assets/go/dep-gate-go.sh
